@@ -112,7 +112,7 @@ public class PacMan {
     }
     
     /**
-     * Resets Pac-Man's position to a specified location.
+     * Resets Pac-Man to a specified position and direction.
      * Used when Pac-Man collides with a ghost.
      * @param newRow the new row position
      * @param newCol the new column position
@@ -120,8 +120,6 @@ public class PacMan {
     public void resetPosition(int newRow, int newCol) {
         this.row = newRow;
         this.col = newCol;
-        this.nextRow = newRow;
-        this.nextCol = newCol;
         this.currentDirection = RIGHT;
         this.nextDirection = RIGHT;
     }
