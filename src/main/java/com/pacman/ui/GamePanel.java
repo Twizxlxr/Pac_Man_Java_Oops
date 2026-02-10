@@ -21,42 +21,44 @@ public class GamePanel extends JPanel implements KeyListener {
     private PacMan pacMan;
     private List<Ghost> ghosts;
     private Timer gameTimer;
-    private static final int GAME_SPEED = 100; // milliseconds between updates
+    private Timer ghostTimer;
+    private static final int GAME_SPEED = 100; // milliseconds between Pac-Man updates
+    private static final int GHOST_SPEED = 200; // milliseconds between ghost updates (slower than Pac-Man)
     
     // Score tracking
     private int score = 0;
-    private static final int PELLET_POINTS = 10;
-    private static final int GHOST_PENALTY = 100; // Points lost when hitting a ghost
+    private static final int GHOST_COLLISION_PENALTY = 100; // Points lost on collision
     
     public GamePanel() {
         // Initialize game objects
         gameMap = new GameMap();
         pacMan = new PacMan(10, 9, gameMap);
         
-        // Initialize ghosts with different starting positions and colors
+        // Initialize ghosts (one or two ghosts for simplicity)
         ghosts = new ArrayList<>();
         ghosts.add(new Ghost("Blinky", Ghost.Color.RED, 5, 5, gameMap));
         ghosts.add(new Ghost("Pinky", Ghost.Color.PINK, 5, 13, gameMap));
-        ghosts.add(new Ghost("Inky", Ghost.Color.CYAN, 10, 5, gameMap));
-        ghosts.add(new Ghost("Clyde", Ghost.Color.ORANGE, 10, 13, gameMap));
         
         // Set panel properties
         setFocusable(true);
         addKeyListener(this);
         setBackground(Color.BLACK);
         
-        // Create and start game loop timer
+        // Create and start Pac-Man game loop timer (faster updates)
         gameTimer = new Timer(GAME_SPEED, e -> {
             pacMan.update();
-            // Update all ghosts
-            for (Ghost ghost : ghosts) {
-                ghost.update();
-            }
-            // Check for collisions between Pac-Man and ghosts
             checkCollisions();
             repaint();
         });
         gameTimer.start();
+        
+        // Create and start ghost movement timer (slower updates)
+        ghostTimer = new Timer(GHOST_SPEED, e -> {
+            for (Ghost ghost : ghosts) {
+                ghost.update();
+            }
+        });
+        ghostTimer.start();
     }
     
     /**
@@ -155,7 +157,7 @@ public class GamePanel extends JPanel implements KeyListener {
     
     /**
      * Draws a single ghost on the screen.
-     * Each ghost is rendered in a different color based on its type.
+     * Each ghost is rendered in a different color.
      * @param g the graphics context
      * @param ghost the ghost to draw
      */
@@ -181,10 +183,13 @@ public class GamePanel extends JPanel implements KeyListener {
                 break;
         }
         
-        // Draw ghost body as a rounded rectangle
-        g.fillRoundRect(x, y, size, size, 5, 5);
+        // Draw ghost as a simple filled square with a border
+        g.fillRect(x, y, size, size);
+        g.setColor(Color.BLACK);
+        g.setStroke(new BasicStroke(1));
+        g.drawRect(x, y, size, size);
         
-        // Draw eyes
+        // Draw simple ghost eyes (white dots)
         g.setColor(Color.WHITE);
         int eyeSize = 2;
         g.fillOval(x + size / 4 - eyeSize / 2, y + size / 3 - eyeSize / 2, eyeSize, eyeSize);
@@ -192,24 +197,22 @@ public class GamePanel extends JPanel implements KeyListener {
     }
     
     /**
-     * Checks for collisions between Pac-Man and any ghost.
-     * When a collision is detected, logs the event and applies penalty.
-     * In future versions, this could trigger game-over or other events.
+     * Checks for collisions between Pac-Man and all ghosts.
+     * Collision occurs when they occupy the same grid cell.
+     * On collision, penalizes score and resets Pac-Man position.
      */
     private void checkCollisions() {
         for (Ghost ghost : ghosts) {
             if (ghost.collidesWith(pacMan.getRow(), pacMan.getCol())) {
-                // Log collision
+                // Log collision to console
                 System.out.println("COLLISION! Pac-Man hit " + ghost.getName() + "!");
                 
                 // Apply penalty to score
-                score = Math.max(0, score - GHOST_PENALTY);
+                score = Math.max(0, score - GHOST_COLLISION_PENALTY);
+                System.out.println("Score reduced by " + GHOST_COLLISION_PENALTY + ". New score: " + score);
                 
-                // Reset Pac-Man position (for now, restart at center)
-                // In future versions, this could reduce lives or trigger game-over
+                // Reset Pac-Man to center position
                 pacMan.resetPosition(10, 9);
-                
-                System.out.println("Score after collision: " + score);
             }
         }
     }
@@ -221,7 +224,7 @@ public class GamePanel extends JPanel implements KeyListener {
         g.setColor(Color.WHITE);
         g.setFont(new Font("Arial", Font.PLAIN, 14));
         g.drawString("Score: " + score, 10, getHeight() - 25);
-        g.drawString("Use arrow keys to move", 10, getHeight() - 10);
+        g.drawString("Use arrow keys to move | Avoid ghosts!", 10, getHeight() - 10);
     }
     
     /**
