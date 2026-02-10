@@ -1,0 +1,153 @@
+package com.pacman.model;
+
+import java.util.Random;
+
+/**
+ * Ghost represents an enemy character that moves around the maze.
+ * Uses simple random movement logic (no pathfinding).
+ * Ghosts respect wall boundaries and stay within the maze.
+ */
+public class Ghost {
+    private int row;
+    private int col;
+    private GameMap gameMap;
+    private Random random;
+    private int currentDirection;
+    private String name;
+    private Color ghostColor;
+    
+    // Direction constants (same as PacMan)
+    public static final int UP = 0;
+    public static final int DOWN = 1;
+    public static final int LEFT = 2;
+    public static final int RIGHT = 3;
+    
+    // Ghost color enum
+    public enum Color {
+        RED, PINK, CYAN, ORANGE
+    }
+    
+    public Ghost(String name, Color color, int startRow, int startCol, GameMap gameMap) {
+        this.name = name;
+        this.ghostColor = color;
+        this.row = startRow;
+        this.col = startCol;
+        this.gameMap = gameMap;
+        this.random = new Random();
+        this.currentDirection = random.nextInt(4); // Start with random direction
+    }
+    
+    /**
+     * Updates ghost position using simple random movement.
+     * Tries to move in the current direction. If blocked by a wall,
+     * randomly chooses a new valid direction.
+     * 
+     * This simple AI is suitable for a beginner-level game and doesn't
+     * require complex pathfinding algorithms.
+     */
+    public void update() {
+        // Try to move in current direction
+        if (canMoveInDirection(currentDirection)) {
+            moveInDirection(currentDirection);
+        } else {
+            // If blocked, pick a new random direction
+            findNewDirection();
+        }
+    }
+    
+    /**
+     * Checks if the ghost can move in a specific direction without hitting a wall.
+     * @param direction the direction to check (UP, DOWN, LEFT, RIGHT)
+     * @return true if the direction is walkable
+     */
+    private boolean canMoveInDirection(int direction) {
+        int newRow = row + getRowDelta(direction);
+        int newCol = col + getColDelta(direction);
+        return gameMap.isWalkable(newRow, newCol);
+    }
+    
+    /**
+     * Moves the ghost in the specified direction.
+     * @param direction the direction to move
+     */
+    private void moveInDirection(int direction) {
+        row += getRowDelta(direction);
+        col += getColDelta(direction);
+        currentDirection = direction;
+    }
+    
+    /**
+     * Finds a new valid random direction when blocked.
+     * Tries up to 4 random directions to find a valid path.
+     */
+    private void findNewDirection() {
+        int attempts = 0;
+        int maxAttempts = 4;
+        
+        while (attempts < maxAttempts) {
+            int newDirection = random.nextInt(4);
+            if (canMoveInDirection(newDirection)) {
+                moveInDirection(newDirection);
+                return;
+            }
+            attempts++;
+        }
+        
+        // If no direction works, stay in place (trapped)
+        // This typically won't happen in an open maze
+    }
+    
+    /**
+     * Gets the row delta (change in row) for a given direction.
+     * @param direction the direction
+     * @return -1 for UP, 1 for DOWN, 0 otherwise
+     */
+    private int getRowDelta(int direction) {
+        if (direction == UP) return -1;
+        if (direction == DOWN) return 1;
+        return 0;
+    }
+    
+    /**
+     * Gets the column delta (change in column) for a given direction.
+     * @param direction the direction
+     * @return -1 for LEFT, 1 for RIGHT, 0 otherwise
+     */
+    private int getColDelta(int direction) {
+        if (direction == LEFT) return -1;
+        if (direction == RIGHT) return 1;
+        return 0;
+    }
+    
+    /**
+     * Checks if this ghost collides with a given position.
+     * Collision occurs when ghost and target are in the same grid cell.
+     * @param targetRow the row to check
+     * @param targetCol the column to check
+     * @return true if ghost occupies the same cell
+     */
+    public boolean collidesWith(int targetRow, int targetCol) {
+        return this.row == targetRow && this.col == targetCol;
+    }
+    
+    // Getters
+    public int getRow() {
+        return row;
+    }
+    
+    public int getCol() {
+        return col;
+    }
+    
+    public String getName() {
+        return name;
+    }
+    
+    public Color getGhostColor() {
+        return ghostColor;
+    }
+    
+    public int getCurrentDirection() {
+        return currentDirection;
+    }
+}

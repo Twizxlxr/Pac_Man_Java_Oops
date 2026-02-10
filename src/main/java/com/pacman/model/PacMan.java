@@ -110,4 +110,19 @@ public class PacMan {
     public int getCurrentDirection() {
         return currentDirection;
     }
+    
+    /**
+     * Resets Pac-Man's position to a specified location.
+     * Used when Pac-Man collides with a ghost.
+     * @param newRow the new row position
+     * @param newCol the new column position
+     */
+    public void resetPosition(int newRow, int newCol) {
+        this.row = newRow;
+        this.col = newCol;
+        this.nextRow = newRow;
+        this.nextCol = newCol;
+        this.currentDirection = RIGHT;
+        this.nextDirection = RIGHT;
+    }
 }
