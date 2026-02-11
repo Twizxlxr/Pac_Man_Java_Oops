@@ -86,6 +86,14 @@ public class Ghost {
     private boolean canMoveInDirection(int direction) {
         int newRow = row + getRowDelta(direction);
         int newCol = col + getColDelta(direction);
+        if (row == GameMap.TUNNEL_ROW) {
+            if (direction == LEFT && col == 0) {
+                return true;
+            }
+            if (direction == RIGHT && col == gameMap.getCols() - 1) {
+                return true;
+            }
+        }
         return gameMap.isWalkable(newRow, newCol);
     }
     
@@ -96,6 +104,11 @@ public class Ghost {
     private void moveInDirection(int direction) {
         row += getRowDelta(direction);
         col += getColDelta(direction);
+        if (col < 0) {
+            col = gameMap.getCols() - 1;
+        } else if (col >= gameMap.getCols()) {
+            col = 0;
+        }
         currentDirection = direction;
     }
     

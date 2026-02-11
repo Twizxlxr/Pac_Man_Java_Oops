@@ -1,7 +1,5 @@
 package com.pacman.ui;
 
-import com.pacman.model.GameMap;
-
 import javax.swing.JFrame;
 
 /**
@@ -22,12 +20,8 @@ public class GameFrame extends JFrame {
         gamePanel = new GamePanel();
         add(gamePanel);
         
-        // Set frame size based on game grid
-        // Create a temporary map to get dimensions
-        GameMap tempMap = new GameMap();
-        int width = tempMap.getCols() * tempMap.getCellSize();
-        int height = tempMap.getRows() * tempMap.getCellSize() + 40; // Extra space for info text
-        setSize(width, height);
+        // Set frame size to match classic arcade layout proportions
+        setSize(800, 600);
         
         // Center window on screen
         setLocationRelativeTo(null);

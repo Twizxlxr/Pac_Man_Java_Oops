@@ -21,9 +21,9 @@ public class PacMan {
     private int nextDirection = RIGHT;
     
     // Mouth animation
-    private double mouthAngle = 0.0; // Angle for mouth opening (0-45 degrees)
-    private static final double MOUTH_ANIMATION_SPEED = 0.1; // How fast the mouth opens/closes
-    private static final double MOUTH_MAX_ANGLE = 45.0; // Maximum mouth opening in degrees
+    private double mouthAngle = 0.0; // Angle for mouth opening (10-40 degrees)
+    private static final double MOUTH_MIN_ANGLE = 10.0;
+    private static final double MOUTH_MAX_ANGLE = 40.0;
     
     public PacMan(int startRow, int startCol, GameMap gameMap) {
         this.row = startRow;
@@ -65,6 +65,13 @@ public class PacMan {
             tempCol = col + getColDelta(currentDirection);
         }
         
+        // Wrap through side tunnels
+        if (tempCol < 0) {
+            tempCol = gameMap.getCols() - 1;
+        } else if (tempCol >= gameMap.getCols()) {
+            tempCol = 0;
+        }
+
         // Update position
         row = tempRow;
         col = tempCol;
@@ -74,22 +81,17 @@ public class PacMan {
     }
     
     /**
-     * Updates mouth animation - oscillates between 0 and MOUTH_MAX_ANGLE.
+     * Updates mouth animation - oscillates between MOUTH_MIN_ANGLE and MOUTH_MAX_ANGLE.
      */
     private void updateMouthAnimation() {
-        mouthAngle += MOUTH_ANIMATION_SPEED;
-        if (mouthAngle > MOUTH_MAX_ANGLE) {
-            mouthAngle = MOUTH_MAX_ANGLE;
-            // Reverse direction
-            if (MOUTH_ANIMATION_SPEED > 0) {
-                // We need a way to reverse, use a simple approach:
-                // Just alternate by checking current value
-            }
-        }
-        // Simple oscillation using modulo
         double cycle = (System.currentTimeMillis() / 50) % 100; // 100ms cycle
-        mouthAngle = MOUTH_MAX_ANGLE * Math.sin(cycle * Math.PI / 100);
-        if (mouthAngle < 0) mouthAngle = Math.abs(mouthAngle);
+        double normalized = Math.sin(cycle * Math.PI / 100);
+        double amplitude = (MOUTH_MAX_ANGLE - MOUTH_MIN_ANGLE) / 2.0;
+        double midpoint = MOUTH_MIN_ANGLE + amplitude;
+        mouthAngle = midpoint + amplitude * normalized;
+        if (mouthAngle < MOUTH_MIN_ANGLE) {
+            mouthAngle = MOUTH_MIN_ANGLE;
+        }
     }
     
     /**
@@ -102,6 +104,14 @@ public class PacMan {
     private boolean canMoveInDirection(int direction, int fromRow, int fromCol) {
         int newRow = fromRow + getRowDelta(direction);
         int newCol = fromCol + getColDelta(direction);
+        if (fromRow == GameMap.TUNNEL_ROW) {
+            if (direction == LEFT && fromCol == 0) {
+                return true;
+            }
+            if (direction == RIGHT && fromCol == gameMap.getCols() - 1) {
+                return true;
+            }
+        }
         return gameMap.isWalkable(newRow, newCol);
     }
     
