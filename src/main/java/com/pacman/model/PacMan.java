@@ -7,9 +7,7 @@ package com.pacman.model;
 public class PacMan {
     private int row;
     private int col;
-    private int nextRow;
-    private int nextCol;
-    private GameMap gameMap;
+    private Maze maze;
     
     // Direction constants
     public static final int UP = 0;
@@ -25,12 +23,10 @@ public class PacMan {
     private static final double MOUTH_MIN_ANGLE = 10.0;
     private static final double MOUTH_MAX_ANGLE = 40.0;
     
-    public PacMan(int startRow, int startCol, GameMap gameMap) {
+    public PacMan(int startRow, int startCol, Maze maze) {
         this.row = startRow;
         this.col = startCol;
-        this.nextRow = startRow;
-        this.nextCol = startCol;
-        this.gameMap = gameMap;
+        this.maze = maze;
     }
     
     /**
@@ -49,32 +45,39 @@ public class PacMan {
      * Also updates mouth animation.
      */
     public void update() {
-        // Calculate next position based on nextDirection
-        int tempRow = row;
-        int tempCol = col;
+        // Try nextDirection first
+        int tempRow = row + getRowDelta(nextDirection);
+        int tempCol = col + getColDelta(nextDirection);
         
-        // Apply nextDirection
-        if (canMoveInDirection(nextDirection, tempRow, tempCol)) {
-            tempRow += getRowDelta(nextDirection);
-            tempCol += getColDelta(nextDirection);
-            currentDirection = nextDirection;
-        } 
-        // If nextDirection is blocked, try currentDirection
-        else if (canMoveInDirection(currentDirection, row, col)) {
-            tempRow = row + getRowDelta(currentDirection);
-            tempCol = col + getColDelta(currentDirection);
-        }
-        
-        // Wrap through side tunnels
+        // Wrap around edges
         if (tempCol < 0) {
-            tempCol = gameMap.getCols() - 1;
-        } else if (tempCol >= gameMap.getCols()) {
+            tempCol = maze.getCols() - 1;
+        } else if (tempCol >= maze.getCols()) {
             tempCol = 0;
         }
-
-        // Update position
-        row = tempRow;
-        col = tempCol;
+        
+        // Check if next direction is walkable
+        if (maze.isWalkable(tempRow, tempCol)) {
+            row = tempRow;
+            col = tempCol;
+            currentDirection = nextDirection;
+        } else {
+            // Try current direction
+            tempRow = row + getRowDelta(currentDirection);
+            tempCol = col + getColDelta(currentDirection);
+            
+            // Wrap around edges
+            if (tempCol < 0) {
+                tempCol = maze.getCols() - 1;
+            } else if (tempCol >= maze.getCols()) {
+                tempCol = 0;
+            }
+            
+            if (maze.isWalkable(tempRow, tempCol)) {
+                row = tempRow;
+                col = tempCol;
+            }
+        }
         
         // Update mouth animation
         updateMouthAnimation();
@@ -94,26 +97,6 @@ public class PacMan {
         }
     }
     
-    /**
-     * Checks if Pac-Man can move in a specific direction from a given position.
-     * @param direction the direction to check
-     * @param fromRow the starting row
-     * @param fromCol the starting column
-     * @return true if the move is valid (not blocked by a wall)
-     */
-    private boolean canMoveInDirection(int direction, int fromRow, int fromCol) {
-        int newRow = fromRow + getRowDelta(direction);
-        int newCol = fromCol + getColDelta(direction);
-        if (fromRow == GameMap.TUNNEL_ROW) {
-            if (direction == LEFT && fromCol == 0) {
-                return true;
-            }
-            if (direction == RIGHT && fromCol == gameMap.getCols() - 1) {
-                return true;
-            }
-        }
-        return gameMap.isWalkable(newRow, newCol);
-    }
     
     /**
      * Gets the row delta (change in row) for a given direction.

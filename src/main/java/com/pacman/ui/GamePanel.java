@@ -1,6 +1,6 @@
 package com.pacman.ui;
 
-import com.pacman.model.GameMap;
+import com.pacman.model.Maze;
 import com.pacman.model.PacMan;
 import com.pacman.model.Ghost;
 
@@ -11,6 +11,7 @@ import java.awt.event.KeyListener;
 import java.awt.event.KeyEvent;
 import java.util.ArrayList;
 import java.util.List;
+import java.awt.Point;
 
 /**
  * GamePanel handles rendering and game logic updates.
@@ -18,11 +19,12 @@ import java.util.List;
  * Implements advanced graphics rendering with Graphics2D for improved visuals.
  */
 public class GamePanel extends JPanel implements KeyListener {
-    private GameMap gameMap;
+    private Maze maze;
     private PacMan pacMan;
     private List<Ghost> ghosts;
     private Timer gameTimer;
     private static final int GAME_SPEED = 100; // milliseconds between Pac-Man updates
+    private static final int CELL_SIZE = 20; // pixels per cell
     
     // Score tracking
     private int score = 0;
@@ -31,16 +33,39 @@ public class GamePanel extends JPanel implements KeyListener {
     private static final int POWER_PELLET_POINTS = 50; // Points for eating a power pellet
     
     public GamePanel() {
-        // Initialize game objects
-        gameMap = new GameMap();
-        pacMan = new PacMan(16, 9, gameMap);
+        // Load maze from CSV file
+        maze = new Maze("level.csv");
         
-        // Initialize 4 ghosts at strategic positions
+        // Initialize Pac-Man at spawn position
+        Point pacmanSpawn = maze.pacmanSpawn;
+        pacMan = new PacMan(pacmanSpawn.y, pacmanSpawn.x, maze);
+        
+        // Initialize 4 ghosts at positions from maze
         ghosts = new ArrayList<>();
-        ghosts.add(new Ghost("Blinky", Ghost.Color.RED, 10, 9, gameMap));      // Center - red
-        ghosts.add(new Ghost("Pinky", Ghost.Color.PINK, 10, 8, gameMap));      // Left - pink
-        ghosts.add(new Ghost("Inky", Ghost.Color.CYAN, 10, 10, gameMap));      // Right - cyan
-        ghosts.add(new Ghost("Clyde", Ghost.Color.ORANGE, 9, 9, gameMap));     // Top - orange
+        
+        // Blinky (Red)
+        Point blinkySpawn = maze.ghostSpawns.get("blinky");
+        if (blinkySpawn != null) {
+            ghosts.add(new Ghost("Blinky", Ghost.Color.RED, blinkySpawn.y, blinkySpawn.x, maze));
+        }
+        
+        // Pinky (Pink)
+        Point pinkySpawn = maze.ghostSpawns.get("pinky");
+        if (pinkySpawn != null) {
+            ghosts.add(new Ghost("Pinky", Ghost.Color.PINK, pinkySpawn.y, pinkySpawn.x, maze));
+        }
+        
+        // Inky (Cyan)
+        Point inkySpawn = maze.ghostSpawns.get("inky");
+        if (inkySpawn != null) {
+            ghosts.add(new Ghost("Inky", Ghost.Color.CYAN, inkySpawn.y, inkySpawn.x, maze));
+        }
+        
+        // Clyde (Orange)
+        Point clydeSpawn = maze.ghostSpawns.get("clyde");
+        if (clydeSpawn != null) {
+            ghosts.add(new Ghost("Clyde", Ghost.Color.ORANGE, clydeSpawn.y, clydeSpawn.x, maze));
+        }
         
         // Set panel properties
         setFocusable(true);
@@ -63,9 +88,6 @@ public class GamePanel extends JPanel implements KeyListener {
         gameTimer.start();
     }
     
-    /**
-     * Paintcomponent - renders the game board and all game entities.
-     */
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
@@ -75,9 +97,8 @@ public class GamePanel extends JPanel implements KeyListener {
         g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         g2d.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
         
-        // Draw maze walls and pellets
-        drawMazeWalls(g2d);
-        drawPellets(g2d);
+        // Draw maze from CSV
+        drawMaze(g2d);
         
         // Draw all ghosts
         for (Ghost ghost : ghosts) {
@@ -92,110 +113,34 @@ public class GamePanel extends JPanel implements KeyListener {
     }
     
     /**
-     * Returns the top-left offset used to center the maze in the window.
+     * Draws the maze based on CSV data.
      */
-    private int[] getMazeOffset() {
-        int cellSize = gameMap.getCellSize();
-        int mazeWidth = gameMap.getCols() * cellSize;
-        int mazeHeight = gameMap.getRows() * cellSize;
-        int infoHeight = 30;
-        int offsetX = Math.max(0, (getWidth() - mazeWidth) / 2);
-        int offsetY = Math.max(0, (getHeight() - infoHeight - mazeHeight) / 2);
-        return new int[] { offsetX, offsetY };
-    }
-
-    /**
-     * Draws the classic Pac-Man maze walls using continuous blue lines.
-     */
-    private void drawMazeWalls(Graphics2D g) {
-        int cellSize = gameMap.getCellSize();
-        int[] offset = getMazeOffset();
-        int x0 = offset[0];
-        int y0 = offset[1];
-        int width = gameMap.getCols() * cellSize;
-        int height = gameMap.getRows() * cellSize;
-
-        g.setColor(new Color(0, 0, 255));
-        g.setStroke(new BasicStroke(6, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
-
-        // Outer rounded rectangle border
-        g.drawRoundRect(x0 + 3, y0 + 3, width - 6, height - 6, cellSize, cellSize);
-
-        // Long horizontal corridors (top and bottom)
-        g.drawLine(x0 + cellSize * 2, y0 + cellSize * 4, x0 + width - cellSize * 2, y0 + cellSize * 4);
-        g.drawLine(x0 + cellSize * 2, y0 + cellSize * 16, x0 + width - cellSize * 2, y0 + cellSize * 16);
-
-        // Symmetrical vertical connectors
-        g.drawLine(x0 + cellSize * 4, y0 + cellSize * 4, x0 + cellSize * 4, y0 + cellSize * 7);
-        g.drawLine(x0 + cellSize * 14, y0 + cellSize * 4, x0 + cellSize * 14, y0 + cellSize * 7);
-        g.drawLine(x0 + cellSize * 4, y0 + cellSize * 13, x0 + cellSize * 4, y0 + cellSize * 16);
-        g.drawLine(x0 + cellSize * 14, y0 + cellSize * 13, x0 + cellSize * 14, y0 + cellSize * 16);
-
-        // Inner corner blocks with rounded corners
-        g.drawRoundRect(x0 + cellSize * 2, y0 + cellSize * 2, cellSize * 5, cellSize * 3, cellSize, cellSize);
-        g.drawRoundRect(x0 + cellSize * 12, y0 + cellSize * 2, cellSize * 5, cellSize * 3, cellSize, cellSize);
-        g.drawRoundRect(x0 + cellSize * 2, y0 + cellSize * 14, cellSize * 5, cellSize * 3, cellSize, cellSize);
-        g.drawRoundRect(x0 + cellSize * 12, y0 + cellSize * 14, cellSize * 5, cellSize * 3, cellSize, cellSize);
-
-        // Accent arcs for rounded inner corners
-        g.drawArc(x0 + cellSize * 2, y0 + cellSize * 2, cellSize * 2, cellSize * 2, 90, 90);
-        g.drawArc(x0 + cellSize * 15, y0 + cellSize * 2, cellSize * 2, cellSize * 2, 0, 90);
-        g.drawArc(x0 + cellSize * 2, y0 + cellSize * 15, cellSize * 2, cellSize * 2, 180, 90);
-        g.drawArc(x0 + cellSize * 15, y0 + cellSize * 15, cellSize * 2, cellSize * 2, 270, 90);
-
-        // Mid-side blocks
-        g.drawRoundRect(x0 + cellSize * 2, y0 + cellSize * 7, cellSize * 3, cellSize * 4, cellSize, cellSize);
-        g.drawRoundRect(x0 + cellSize * 14, y0 + cellSize * 7, cellSize * 3, cellSize * 4, cellSize, cellSize);
-
-        // Central vertical connectors
-        g.drawLine(x0 + cellSize * 9, y0 + cellSize * 4, x0 + cellSize * 9, y0 + cellSize * 8);
-        g.drawLine(x0 + cellSize * 9, y0 + cellSize * 12, x0 + cellSize * 9, y0 + cellSize * 16);
-
-        // Central ghost box
-        g.drawRoundRect(x0 + cellSize * 7, y0 + cellSize * 9, cellSize * 5, cellSize * 3, cellSize, cellSize);
-
-        // Opening in ghost box (erase small section)
-        g.setColor(Color.BLACK);
-        g.drawLine(x0 + cellSize * 8, y0 + cellSize * 9, x0 + cellSize * 10, y0 + cellSize * 9);
-        g.setColor(new Color(0, 0, 255));
-
-        // Side tunnel openings (erase outer border sections)
-        g.setColor(Color.BLACK);
-        g.drawLine(x0, y0 + cellSize * 10, x0 + cellSize, y0 + cellSize * 10);
-        g.drawLine(x0 + width - cellSize, y0 + cellSize * 10, x0 + width, y0 + cellSize * 10);
-        g.setColor(new Color(0, 0, 255));
-    }
-
-    /**
-     * Draws pellets along walkable paths.
-     */
-    private void drawPellets(Graphics2D g) {
-        int cellSize = gameMap.getCellSize();
-        int[] offset = getMazeOffset();
-        int offsetX = offset[0];
-        int offsetY = offset[1];
-
-        for (int row = 0; row < gameMap.getRows(); row++) {
-            for (int col = 0; col < gameMap.getCols(); col++) {
-                int tileType = gameMap.getTile(row, col);
-                if (tileType == GameMap.DOT) {
-                    int x = offsetX + col * cellSize;
-                    int y = offsetY + row * cellSize;
-                    int dotSize = isPowerPellet(row, col) ? 14 : 6;
+    private void drawMaze(Graphics2D g) {
+        for (int row = 0; row < maze.getRows(); row++) {
+            for (int col = 0; col < maze.getCols(); col++) {
+                int x = col * CELL_SIZE;
+                int y = row * CELL_SIZE;
+                char tile = maze.getTile(row, col);
+                
+                if (tile == 'x') {
+                    // Draw walls in blue
+                    g.setColor(new Color(0, 0, 255));
+                    g.fillRect(x, y, CELL_SIZE, CELL_SIZE);
+                }
+                
+                if (tile == '.') {
+                    // Draw regular pellets
                     g.setColor(Color.WHITE);
-                    g.fillOval(x + cellSize / 2 - dotSize / 2, y + cellSize / 2 - dotSize / 2, dotSize, dotSize);
+                    g.fillOval(x + 8, y + 8, 6, 6);
+                }
+                
+                if (tile == 'o') {
+                    // Draw power pellets
+                    g.setColor(Color.WHITE);
+                    g.fillOval(x + 4, y + 4, 14, 14);
                 }
             }
         }
-    }
-
-    private boolean isPowerPellet(int row, int col) {
-        int lastRow = gameMap.getRows() - 2;
-        int lastCol = gameMap.getCols() - 2;
-        return (row == 1 && col == 1)
-            || (row == 1 && col == lastCol)
-            || (row == lastRow && col == 1)
-            || (row == lastRow && col == lastCol);
     }
     
     /**
@@ -203,11 +148,9 @@ public class GamePanel extends JPanel implements KeyListener {
      * Mouth opens/closes based on mouthAngle and rotates based on direction.
      */
     private void drawPacMan(Graphics2D g) {
-        int cellSize = gameMap.getCellSize();
-        int[] offset = getMazeOffset();
-        int x = offset[0] + pacMan.getCol() * cellSize + 3;
-        int y = offset[1] + pacMan.getRow() * cellSize + 3;
-        int size = cellSize - 6;
+        int x = pacMan.getCol() * CELL_SIZE + 1;
+        int y = pacMan.getRow() * CELL_SIZE + 1;
+        int size = CELL_SIZE - 2;
         
         // Draw Pac-Man body as a filled circle with mouth opening
         g.setColor(Color.YELLOW);
@@ -240,7 +183,7 @@ public class GamePanel extends JPanel implements KeyListener {
         
         // Draw eye
         g.setColor(Color.BLACK);
-        int eyeSize = 3;
+        int eyeSize = 2;
         int eyeX = x + size / 3;
         int eyeY = y + size / 4;
         g.fillOval(eyeX, eyeY, eyeSize, eyeSize);
@@ -257,11 +200,9 @@ public class GamePanel extends JPanel implements KeyListener {
      * @param ghost the ghost to draw
      */
     private void drawGhost(Graphics2D g, Ghost ghost) {
-        int cellSize = gameMap.getCellSize();
-        int[] offset = getMazeOffset();
-        int x = offset[0] + ghost.getCol() * cellSize + 3;
-        int y = offset[1] + ghost.getRow() * cellSize + 3;
-        int size = cellSize - 6;
+        int x = ghost.getCol() * CELL_SIZE + 1;
+        int y = ghost.getRow() * CELL_SIZE + 1;
+        int size = CELL_SIZE - 2;
         int headRadius = size / 2;
         int bodyHeight = size - headRadius;
         
@@ -296,12 +237,12 @@ public class GamePanel extends JPanel implements KeyListener {
 
         // Draw ghost body (rectangular mid-section)
         int bodyY = y + headRadius;
-        int waveHeight = Math.max(4, size / 6);
+        int waveHeight = Math.max(2, size / 8);
         int bodyRectHeight = bodyHeight - waveHeight;
         g.fillRect(x, bodyY, size, bodyRectHeight);
 
         // Draw wavy bottom using polygon
-        int waveCount = 4;
+        int waveCount = 3;
         int waveWidth = size / waveCount;
         int waveTop = bodyY + bodyRectHeight;
         int waveBase = waveTop + waveHeight;
@@ -313,14 +254,10 @@ public class GamePanel extends JPanel implements KeyListener {
             x + 2 * waveWidth,
             x + 2 * waveWidth + waveWidth / 2,
             x + 3 * waveWidth,
-            x + 3 * waveWidth + waveWidth / 2,
-            x + 4 * waveWidth,
-            x + 4 * waveWidth,
+            x + 3 * waveWidth,
             x
         };
         int[] yPoints = new int[] {
-            waveTop,
-            waveBase,
             waveTop,
             waveBase,
             waveTop,
@@ -335,7 +272,7 @@ public class GamePanel extends JPanel implements KeyListener {
 
         // Draw eyes (two white circles with black pupils)
         g.setColor(Color.WHITE);
-        int eyeRadius = 3;
+        int eyeRadius = 2;
         int eyeSpacing = size / 3;
         
         // Left eye
@@ -350,7 +287,7 @@ public class GamePanel extends JPanel implements KeyListener {
         
         // Draw pupils (black dots inside white eyes)
         g.setColor(Color.BLACK);
-        int pupilRadius = 2;
+        int pupilRadius = 1;
         g.fillOval(leftEyeX + eyeRadius - pupilRadius, leftEyeY + eyeRadius - pupilRadius, 
                    pupilRadius * 2, pupilRadius * 2);
         g.fillOval(rightEyeX + eyeRadius - pupilRadius, rightEyeY + eyeRadius - pupilRadius, 
@@ -364,29 +301,22 @@ public class GamePanel extends JPanel implements KeyListener {
     private void checkPelletCollisions() {
         int pacManRow = pacMan.getRow();
         int pacManCol = pacMan.getCol();
-        int currentTile = gameMap.getTile(pacManRow, pacManCol);
         
         // Check if Pac-Man is on a pellet
-        if (currentTile == GameMap.DOT) {
-            // Determine if it's a power pellet or regular pellet
-            boolean isPowerPellet = isPowerPellet(pacManRow, pacManCol);
-            
-            // Remove the pellet from the map
-            gameMap.setTile(pacManRow, pacManCol, GameMap.EMPTY);
-            
-            if (isPowerPellet) {
-                // Freeze all ghosts and award more points
-                score += POWER_PELLET_POINTS;
-                for (Ghost ghost : ghosts) {
-                    ghost.freeze();
-                }
-                System.out.println("Power Pellet eaten! All ghosts frozen for 8 seconds!");
-                System.out.println("Score increased by " + POWER_PELLET_POINTS + ". New score: " + score);
-            } else {
-                // Regular pellet
-                score += PELLET_POINTS;
-                System.out.println("Pellet eaten! Score increased by " + PELLET_POINTS + ". New score: " + score);
+        if (maze.hasPellet(pacManRow, pacManCol)) {
+            // Regular pellet
+            maze.setTile(pacManRow, pacManCol, ' ');
+            score += PELLET_POINTS;
+            System.out.println("Pellet eaten! Score increased by " + PELLET_POINTS + ". New score: " + score);
+        } else if (maze.hasPowerPellet(pacManRow, pacManCol)) {
+            // Power pellet - freeze all ghosts
+            maze.setTile(pacManRow, pacManCol, ' ');
+            score += POWER_PELLET_POINTS;
+            for (Ghost ghost : ghosts) {
+                ghost.freeze();
             }
+            System.out.println("Power Pellet eaten! All ghosts frozen for 8 seconds!");
+            System.out.println("Score increased by " + POWER_PELLET_POINTS + ". New score: " + score);
         }
     }
     

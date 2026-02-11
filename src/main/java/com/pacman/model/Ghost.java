@@ -15,7 +15,7 @@ import java.util.Random;
 public class Ghost {
     private int row;
     private int col;
-    private GameMap gameMap;
+    private Maze maze;
     private Random random;
     private int currentDirection;
     private String name;
@@ -46,14 +46,14 @@ public class Ghost {
      * @param color the ghost's color
      * @param startRow the starting row
      * @param startCol the starting column
-     * @param gameMap reference to the game map for wall collision checks
+     * @param maze reference to the maze for wall collision checks
      */
-    public Ghost(String name, Color color, int startRow, int startCol, GameMap gameMap) {
+    public Ghost(String name, Color color, int startRow, int startCol, Maze maze) {
         this.name = name;
         this.ghostColor = color;
         this.row = startRow;
         this.col = startCol;
-        this.gameMap = gameMap;
+        this.maze = maze;
         this.random = new Random();
         this.currentDirection = random.nextInt(4); // Start with random direction
     }
@@ -103,15 +103,12 @@ public class Ghost {
     private boolean canMoveInDirection(int direction) {
         int newRow = row + getRowDelta(direction);
         int newCol = col + getColDelta(direction);
-        if (row == GameMap.TUNNEL_ROW) {
-            if (direction == LEFT && col == 0) {
-                return true;
-            }
-            if (direction == RIGHT && col == gameMap.getCols() - 1) {
-                return true;
-            }
+        if (newCol < 0) {
+            newCol = maze.getCols() - 1;
+        } else if (newCol >= maze.getCols()) {
+            newCol = 0;
         }
-        return gameMap.isWalkable(newRow, newCol);
+        return maze.isWalkable(newRow, newCol);
     }
     
     /**
@@ -122,8 +119,8 @@ public class Ghost {
         row += getRowDelta(direction);
         col += getColDelta(direction);
         if (col < 0) {
-            col = gameMap.getCols() - 1;
-        } else if (col >= gameMap.getCols()) {
+            col = maze.getCols() - 1;
+        } else if (col >= maze.getCols()) {
             col = 0;
         }
         currentDirection = direction;
