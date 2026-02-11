@@ -81,6 +81,8 @@ public abstract class Entity {
     public int getSize() { return size; }
     public int getxPos() { return xPos; }
     public int getyPos() { return yPos; }
+    public void setxPos(int xPos) { this.xPos = xPos; }
+    public void setyPos(int yPos) { this.yPos = yPos; }
     
     /**
      * Returns the collision hitbox for this entity.

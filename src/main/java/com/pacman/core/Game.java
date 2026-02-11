@@ -75,9 +75,22 @@ public class Game implements Observer {
     
     /** UI panel for score display */
     private UIPanel uiPanel;
+    
+    /** Spawn positions for reset */
+    private int pacmanSpawnX, pacmanSpawnY;
+    private int[] ghostSpawnX, ghostSpawnY;
+    
+    /** Game over flag */
+    private static boolean gameOver = false;
+    
+    /** Game won flag */
+    private static boolean gameWon = false;
 
     public Game(UIPanel uiPanel) {
         this.uiPanel = uiPanel;
+        ghostSpawnX = new int[4];
+        ghostSpawnY = new int[4];
+        int ghostIndex = 0;
         
         // Load level from CSV
         List<List<String>> data = null;
@@ -110,11 +123,17 @@ public class Game implements Observer {
                 if (dataChar.equals("x")) {
                     objects.add(new Wall(xx * cellSize, yy * cellSize));
                 } else if (dataChar.equals("P")) {
-                    pacman = new PacMan(xx * cellSize, yy * cellSize);
+                    pacmanSpawnX = xx * cellSize;
+                    pacmanSpawnY = yy * cellSize;
+                    pacman = new PacMan(pacmanSpawnX, pacmanSpawnY);
                     pacman.setCollisionDetector(collisionDetector);
                     if (uiPanel != null) pacman.registerObserver(uiPanel);
                     pacman.registerObserver(this);
                 } else if (dataChar.equals("b") || dataChar.equals("p") || dataChar.equals("i") || dataChar.equals("c")) {
+                    if (ghostIndex < 4) {
+                        ghostSpawnX[ghostIndex] = xx * cellSize;
+                        ghostSpawnY[ghostIndex] = yy * cellSize;
+                    }
                     switch (dataChar) {
                         case "b":
                             abstractGhostFactory = new BlinkyFactory();
@@ -131,6 +150,7 @@ public class Game implements Observer {
                     }
                     Ghost ghost = abstractGhostFactory.makeGhost(xx * cellSize, yy * cellSize);
                     ghosts.add(ghost);
+                    ghostIndex++;
                     if (dataChar.equals("b")) {
                         blinky = (Blinky) ghost;
                     }
@@ -201,6 +221,7 @@ public class Game implements Observer {
     @Override
     public void updatePacGumEaten(PacGum pg) {
         pg.destroy();
+        checkWinCondition();
     }
 
     /**
@@ -210,28 +231,71 @@ public class Game implements Observer {
     @Override
     public void updateSuperPacGumEaten(SuperPacGum spg) {
         spg.destroy();
+        checkWinCondition();
         // Trigger frightened mode for all ghosts
         for (Ghost gh : ghosts) {
             gh.getState().superPacGumEaten();
+        }
+    }
+    
+    /** Checks if player has reached the winning score */
+    private void checkWinCondition() {
+        if (uiPanel != null && uiPanel.getScore() >= 1000) {
+            gameWon = true;
+            uiPanel.repaint(); // Refresh to show restart buttons
+            System.out.println("You win!\nScore: " + uiPanel.getScore());
         }
     }
 
     /**
      * Called when PacMan collides with a ghost.
      * If ghost is frightened, ghost gets eaten (+500 points via UIPanel).
-     * If ghost is normal/chasing, game over.
+     * If ghost is normal/chasing, lose a life or game over.
      */
     @Override
     public void updateGhostCollision(Ghost gh) {
         if (gh.getState() instanceof FrightenedMode) {
             // Ghost is vulnerable - eat it
             gh.getState().eaten();
+            checkWinCondition();
         } else if (!(gh.getState() instanceof EatenMode)) {
-            // Ghost is not eaten (eyes) - game over
-            System.out.println("Game over!\nScore: " + (uiPanel != null ? uiPanel.getScore() : 0));
-            System.exit(0);
+            // Ghost is not eaten (eyes) - lose a life
+            if (uiPanel != null) {
+                uiPanel.loseLife();
+                if (uiPanel.isGameOver()) {
+                    gameOver = true;
+                    System.out.println("Game over!\nScore: " + uiPanel.getScore());
+                } else {
+                    // Reset positions
+                    resetPositions();
+                }
+            }
         }
         // If ghost is in EatenMode (eyes), collision is ignored
+    }
+    
+    /** Resets PacMan and ghosts to spawn positions after losing a life */
+    private void resetPositions() {
+        // Reset PacMan
+        if (pacman != null) {
+            pacman.setxPos(pacmanSpawnX);
+            pacman.setyPos(pacmanSpawnY);
+            pacman.setxSpd(0);
+            pacman.setySpd(0);
+        }
+        
+        // Reset ghosts
+        for (int i = 0; i < ghosts.size() && i < 4; i++) {
+            Ghost ghost = ghosts.get(i);
+            ghost.setxPos(ghostSpawnX[i]);
+            ghost.setyPos(ghostSpawnY[i]);
+            ghost.setxSpd(0);
+            ghost.setySpd(0);
+            ghost.switchHouseMode();
+        }
+        
+        // Reset first input flag so ghosts wait again
+        firstInput = false;
     }
 
     // ==================== First Input Flag ====================
@@ -244,5 +308,23 @@ public class Game implements Observer {
     /** Returns true if player has made first input */
     public static boolean getFirstInput() {
         return firstInput;
+    }
+    
+    /** Returns true if game is over */
+    public static boolean isGameOver() {
+        return gameOver;
+    }
+    
+    /** Returns true if player won */
+    public static boolean isGameWon() {
+        return gameWon;
+    }
+    
+    /** Resets the game over flag for restarting */
+    public static void resetGameOver() {
+        gameOver = false;
+        gameWon = false;
+        firstInput = false;
+        walls.clear();
     }
 }

@@ -24,6 +24,8 @@ public class GamePanel extends JPanel implements Runnable {
     private BufferedImage img;
     private Graphics2D g;
     private Image backgroundImage;
+    private Image gameOverImage;
+    private Image youWinImage;
 
     private KeyHandler key;
     private Game game;
@@ -40,6 +42,28 @@ public class GamePanel extends JPanel implements Runnable {
         } catch (IOException e) {
             System.err.println("Could not load background.png");
         }
+        
+        try {
+            gameOverImage = ImageIO.read(new File("GameOver.png"));
+        } catch (IOException e) {
+            System.err.println("Could not load GameOver.png");
+        }
+        
+        try {
+            youWinImage = ImageIO.read(new File("youwin.png"));
+        } catch (IOException e) {
+            System.err.println("Could not load youwin.png");
+        }
+        
+        // Set restart callback on UIPanel
+        uiPanel.setRestartCallback(() -> restartGame());
+    }
+    
+    /** Restarts the game by reinitializing everything */
+    private void restartGame() {
+        Game.resetGameOver();
+        uiPanel.reset();
+        game = new Game(uiPanel);
     }
 
     @Override
@@ -78,8 +102,49 @@ public class GamePanel extends JPanel implements Runnable {
                 g.setColor(Color.BLACK);
                 g.fillRect(0, 0, width, height);
             }
-            // Render all entities
-            game.render(g);
+            
+            // Check for game over or win
+            if (Game.isGameOver() || Game.isGameWon()) {
+                // Semi-transparent overlay
+                g.setColor(new Color(0, 0, 0, 150));
+                g.fillRect(0, 0, width, height);
+                
+                // Select which image to show
+                Image displayImage = Game.isGameWon() ? youWinImage : gameOverImage;
+                String fallbackText = Game.isGameWon() ? "YOU WIN!" : "GAME OVER";
+                Color fallbackColor = Game.isGameWon() ? Color.GREEN : Color.RED;
+                
+                // Draw image scaled to fit
+                if (displayImage != null) {
+                    // Scale image to fit within the panel (with padding)
+                    int maxWidth = width - 40;
+                    int maxHeight = height - 100;
+                    int imgWidth = displayImage.getWidth(null);
+                    int imgHeight = displayImage.getHeight(null);
+                    
+                    if (imgWidth > 0 && imgHeight > 0) {
+                        // Calculate scale to fit
+                        double scale = Math.min((double) maxWidth / imgWidth, (double) maxHeight / imgHeight);
+                        int scaledWidth = (int) (imgWidth * scale);
+                        int scaledHeight = (int) (imgHeight * scale);
+                        
+                        int x = (width - scaledWidth) / 2;
+                        int y = (height - scaledHeight) / 2;
+                        g.drawImage(displayImage, x, y, scaledWidth, scaledHeight, null);
+                    }
+                } else {
+                    // Fallback text if image not found
+                    g.setColor(fallbackColor);
+                    g.setFont(new Font("Arial", Font.BOLD, 48));
+                    FontMetrics fm = g.getFontMetrics();
+                    int textX = (width - fm.stringWidth(fallbackText)) / 2;
+                    int textY = (height + fm.getAscent()) / 2;
+                    g.drawString(fallbackText, textX, textY);
+                }
+            } else {
+                // Render all entities
+                game.render(g);
+            }
         }
     }
 
@@ -114,8 +179,10 @@ public class GamePanel extends JPanel implements Runnable {
             int updateCount = 0;
             
             while ((now - lastUpdateTime) > TBU && (updateCount < MUBR)) {
-                input(key);
-                update();
+                if (!Game.isGameOver() && !Game.isGameWon()) {
+                    input(key);
+                    update();
+                }
                 lastUpdateTime += TBU;
                 updateCount++;
             }
