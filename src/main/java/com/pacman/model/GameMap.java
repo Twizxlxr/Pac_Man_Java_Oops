@@ -319,6 +319,45 @@ public class GameMap {
         return false;
     }
 
+    /**
+     * Counts the remaining dots on the map.
+     * 
+     * @return the number of dots remaining
+     */
+    public int countDots() {
+        int count = 0;
+        for (int row = 0; row < ROWS; row++) {
+            for (int col = 0; col < COLS; col++) {
+                if (grid[row][col] == DOT) {
+                    count++;
+                }
+            }
+        }
+        return count;
+    }
+
+    /**
+     * Resets all empty spaces back to dots for a new level.
+     * Preserves walls, gate, and ghost spawn area.
+     */
+    public void resetDots() {
+        for (int row = 1; row < ROWS - 1; row++) {
+            for (int col = 1; col < COLS - 1; col++) {
+                if (grid[row][col] == EMPTY) {
+                    grid[row][col] = DOT;
+                }
+            }
+        }
+        // Ensure ghost spawn area stays empty
+        for (int r = 9; r <= 10; r++) {
+            for (int c = 8; c <= 10; c++) {
+                grid[r][c] = EMPTY;
+            }
+        }
+        // Ensure gate stays as gate
+        grid[8][9] = GATE;
+    }
+
     public int getRows() {
         return ROWS;
     }

@@ -22,7 +22,9 @@ public class Ghost {
     private Color ghostColor;
 
     private int updateCounter = 0; // Counter to make ghosts move slower than Pac-Man
-    private static final int SPEED_RATIO = 2; // Ghosts move every 2 game updates (slower)
+    private int speedRatio = 2; // Ghosts move every N game updates (adjustable per level)
+    private int startRow;
+    private int startCol;
 
     // Ghost States
     public enum State {
@@ -62,6 +64,8 @@ public class Ghost {
         this.ghostColor = color;
         this.row = startRow;
         this.col = startCol;
+        this.startRow = startRow;
+        this.startCol = startCol;
         this.gameMap = gameMap;
         this.random = new Random();
         this.currentDirection = random.nextInt(4); // Start with random direction
@@ -76,7 +80,7 @@ public class Ghost {
      */
     public void update(PacMan pacMan) {
         updateCounter++;
-        if (updateCounter < SPEED_RATIO) {
+        if (updateCounter < speedRatio) {
             return; // Skip this update to make ghost slower
         }
         updateCounter = 0;
@@ -117,33 +121,30 @@ public class Ghost {
      * At intersections, choose the tile that minimizes distance to target.
      * Ghosts cannot reverse direction unless in specific states.
      */
+    /**
+     * Move towards the target using weighted random approach.
+     * 70% chance: pick the direction closest to target (Euclidean distance).
+     * 30% chance: pick a random valid direction.
+     * This gives the classic Pac-Man "kinda random but chasing" feel.
+     */
     private void moveTowardsTarget() {
+        // Collect all valid directions (excluding reverse unless dead end)
+        java.util.List<Integer> validDirs = new java.util.ArrayList<>();
         int bestDirection = -1;
         double minDistance = Double.MAX_VALUE;
 
-        // Potential directions: UP, DOWN, LEFT, RIGHT
         int[] directions = { UP, DOWN, LEFT, RIGHT };
 
-        // Filter valid directions (not wall, not reverse unless forced)
-        // For simplicity in this implementation, we'll allow immediate reverse if
-        // stuck,
-        // but prefer other directions.
-
         for (int dir : directions) {
-            // Don't reverse immediately if we are moving (unless dead end)
-            if (dir == getOppositeDirection(currentDirection)) {
-                // Determine if we are at a dead end (only 1 valid move which is reverse)
-                if (countValidMoves() > 1) {
-                    continue;
-                }
+            // Don't reverse unless dead end
+            if (dir == getOppositeDirection(currentDirection) && countValidMoves() > 1) {
+                continue;
             }
-
             if (canMoveInDirection(dir)) {
+                validDirs.add(dir);
                 int nextRow = row + getRowDelta(dir);
                 int nextCol = col + getColDelta(dir);
-
                 double distance = Math.sqrt(Math.pow(targetRow - nextRow, 2) + Math.pow(targetCol - nextCol, 2));
-
                 if (distance < minDistance) {
                     minDistance = distance;
                     bestDirection = dir;
@@ -151,11 +152,18 @@ public class Ghost {
             }
         }
 
-        if (bestDirection != -1) {
+        if (validDirs.isEmpty()) {
+            findNewDirection(); // Fallback
+            return;
+        }
+
+        // 70% chase, 30% random
+        if (random.nextDouble() < 0.7 && bestDirection != -1) {
             moveInDirection(bestDirection);
         } else {
-            // If stuck (dead end), just reverse or find any valid
-            findNewDirection(); // Fallback to random if AI fails
+            // Pick a random valid direction
+            int randomDir = validDirs.get(random.nextInt(validDirs.size()));
+            moveInDirection(randomDir);
         }
     }
 
@@ -209,6 +217,26 @@ public class Ghost {
 
     public State getState() {
         return state;
+    }
+
+    /**
+     * Sets the ghost speed ratio. Lower = faster.
+     * 
+     * @param ratio the new speed ratio (min 1)
+     */
+    public void setSpeedRatio(int ratio) {
+        this.speedRatio = Math.max(1, ratio);
+    }
+
+    /**
+     * Resets ghost to its original start position and WAITING state.
+     */
+    public void resetPosition() {
+        this.row = startRow;
+        this.col = startCol;
+        this.state = State.WAITING;
+        this.currentDirection = random.nextInt(4);
+        this.updateCounter = 0;
     }
 
     /**
