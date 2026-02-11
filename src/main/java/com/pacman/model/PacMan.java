@@ -2,7 +2,7 @@ package com.pacman.model;
 
 /**
  * PacMan represents the player character in the game.
- * Handles position, movement, and collision detection.
+ * Handles position, movement, collision detection, and mouth animation.
  */
 public class PacMan {
     private int row;
@@ -19,6 +19,11 @@ public class PacMan {
     
     private int currentDirection = RIGHT;
     private int nextDirection = RIGHT;
+    
+    // Mouth animation
+    private double mouthAngle = 0.0; // Angle for mouth opening (0-45 degrees)
+    private static final double MOUTH_ANIMATION_SPEED = 0.1; // How fast the mouth opens/closes
+    private static final double MOUTH_MAX_ANGLE = 45.0; // Maximum mouth opening in degrees
     
     public PacMan(int startRow, int startCol, GameMap gameMap) {
         this.row = startRow;
@@ -41,6 +46,7 @@ public class PacMan {
      * Updates Pac-Man's position based on the current or next direction.
      * First tries to move in the next direction, then falls back to current direction.
      * Collision checking ensures Pac-Man doesn't walk through walls.
+     * Also updates mouth animation.
      */
     public void update() {
         // Calculate next position based on nextDirection
@@ -62,6 +68,28 @@ public class PacMan {
         // Update position
         row = tempRow;
         col = tempCol;
+        
+        // Update mouth animation
+        updateMouthAnimation();
+    }
+    
+    /**
+     * Updates mouth animation - oscillates between 0 and MOUTH_MAX_ANGLE.
+     */
+    private void updateMouthAnimation() {
+        mouthAngle += MOUTH_ANIMATION_SPEED;
+        if (mouthAngle > MOUTH_MAX_ANGLE) {
+            mouthAngle = MOUTH_MAX_ANGLE;
+            // Reverse direction
+            if (MOUTH_ANIMATION_SPEED > 0) {
+                // We need a way to reverse, use a simple approach:
+                // Just alternate by checking current value
+            }
+        }
+        // Simple oscillation using modulo
+        double cycle = (System.currentTimeMillis() / 50) % 100; // 100ms cycle
+        mouthAngle = MOUTH_MAX_ANGLE * Math.sin(cycle * Math.PI / 100);
+        if (mouthAngle < 0) mouthAngle = Math.abs(mouthAngle);
     }
     
     /**
@@ -99,6 +127,7 @@ public class PacMan {
         return 0;
     }
     
+    // Getter methods
     public int getRow() {
         return row;
     }
@@ -109,6 +138,14 @@ public class PacMan {
     
     public int getCurrentDirection() {
         return currentDirection;
+    }
+    
+    /**
+     * Gets the current mouth angle for animation rendering.
+     * @return the mouth opening angle in degrees
+     */
+    public double getMouthAngle() {
+        return Math.abs(mouthAngle);
     }
     
     /**

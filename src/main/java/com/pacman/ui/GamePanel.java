@@ -15,15 +15,14 @@ import java.util.List;
 /**
  * GamePanel handles rendering and game logic updates.
  * Uses a Timer to create a game loop for smooth movement and rendering.
+ * Implements advanced graphics rendering with Graphics2D for improved visuals.
  */
 public class GamePanel extends JPanel implements KeyListener {
     private GameMap gameMap;
     private PacMan pacMan;
     private List<Ghost> ghosts;
     private Timer gameTimer;
-    private Timer ghostTimer;
     private static final int GAME_SPEED = 100; // milliseconds between Pac-Man updates
-    private static final int GHOST_SPEED = 200; // milliseconds between ghost updates (slower than Pac-Man)
     
     // Score tracking
     private int score = 0;
@@ -34,35 +33,35 @@ public class GamePanel extends JPanel implements KeyListener {
         gameMap = new GameMap();
         pacMan = new PacMan(10, 9, gameMap);
         
-        // Initialize ghosts (one or two ghosts for simplicity)
+        // Initialize 4 ghosts at strategic positions
         ghosts = new ArrayList<>();
-        ghosts.add(new Ghost("Blinky", Ghost.Color.RED, 5, 5, gameMap));
-        ghosts.add(new Ghost("Pinky", Ghost.Color.PINK, 5, 13, gameMap));
+        ghosts.add(new Ghost("Blinky", Ghost.Color.RED, 9, 9, gameMap));      // Center - red
+        ghosts.add(new Ghost("Pinky", Ghost.Color.PINK, 8, 8, gameMap));      // Top-left - pink
+        ghosts.add(new Ghost("Inky", Ghost.Color.CYAN, 8, 10, gameMap));      // Top-right - cyan
+        ghosts.add(new Ghost("Clyde", Ghost.Color.ORANGE, 10, 9, gameMap));   // Bottom - orange
         
         // Set panel properties
         setFocusable(true);
         addKeyListener(this);
         setBackground(Color.BLACK);
         
-        // Create and start Pac-Man game loop timer (faster updates)
+        // Create and start game loop timer
         gameTimer = new Timer(GAME_SPEED, e -> {
             pacMan.update();
+            
+            // Update all ghosts
+            for (Ghost ghost : ghosts) {
+                ghost.update();
+            }
+            
             checkCollisions();
             repaint();
         });
         gameTimer.start();
-        
-        // Create and start ghost movement timer (slower updates)
-        ghostTimer = new Timer(GHOST_SPEED, e -> {
-            for (Ghost ghost : ghosts) {
-                ghost.update();
-            }
-        });
-        ghostTimer.start();
     }
     
     /**
-     * Paintcomponent - renders the game board and Pac-Man.
+     * Paintcomponent - renders the game board and all game entities.
      */
     @Override
     protected void paintComponent(Graphics g) {
@@ -71,8 +70,9 @@ public class GamePanel extends JPanel implements KeyListener {
         
         // Enable antialiasing for smoother graphics
         g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g2d.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
         
-        // Draw the game grid
+        // Draw the game grid and walls
         drawGrid(g2d);
         
         // Draw all ghosts
@@ -88,10 +88,15 @@ public class GamePanel extends JPanel implements KeyListener {
     }
     
     /**
-     * Draws the game grid (walls, empty spaces, and dots).
+     * Draws the game grid (walls, empty spaces, and pellets).
+     * Uses thick blue lines for walls to closely match classic Pac-Man style.
      */
     private void drawGrid(Graphics2D g) {
         int cellSize = gameMap.getCellSize();
+        
+        // Set up stroke for thick walls
+        BasicStroke wallStroke = new BasicStroke(3, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND);
+        g.setStroke(wallStroke);
         
         for (int row = 0; row < gameMap.getRows(); row++) {
             for (int col = 0; col < gameMap.getCols(); col++) {
@@ -100,64 +105,98 @@ public class GamePanel extends JPanel implements KeyListener {
                 int tileType = gameMap.getTile(row, col);
                 
                 if (tileType == GameMap.WALL) {
-                    // Draw walls in blue
-                    g.setColor(Color.BLUE);
-                    g.fillRect(x, y, cellSize, cellSize);
+                    // Draw walls with thick blue lines and rounded edges
+                    g.setColor(new Color(33, 66, 255)); // Classic Pac-Man blue
+                    g.fillRect(x + 1, y + 1, cellSize - 2, cellSize - 2);
                     g.setColor(Color.CYAN);
-                    g.setStroke(new BasicStroke(2));
-                    g.drawRect(x, y, cellSize, cellSize);
+                    g.drawRect(x + 1, y + 1, cellSize - 2, cellSize - 2);
                 } else if (tileType == GameMap.DOT) {
-                    // Draw dots in white
-                    g.setColor(Color.WHITE);
-                    int dotSize = 4;
-                    g.fillOval(x + cellSize / 2 - dotSize / 2, y + cellSize / 2 - dotSize / 2, dotSize, dotSize);
+                    // Draw regular pellets (white dots)
+                    // Check if this is a corner position for power pellets
+                    if (isCornerPosition(row, col)) {
+                        // Power pellet - larger
+                        g.setColor(Color.WHITE);
+                        int dotSize = 8;
+                        g.fillOval(x + cellSize / 2 - dotSize / 2, y + cellSize / 2 - dotSize / 2, dotSize, dotSize);
+                    } else {
+                        // Regular pellet - smaller
+                        g.setColor(Color.WHITE);
+                        int dotSize = 3;
+                        g.fillOval(x + cellSize / 2 - dotSize / 2, y + cellSize / 2 - dotSize / 2, dotSize, dotSize);
+                    }
                 }
             }
         }
     }
     
     /**
-     * Draws Pac-Man on the screen.
-     * Uses a simple circle representation for now.
+     * Determines if a position is in a corner (for power pellet placement).
+     */
+    private boolean isCornerPosition(int row, int col) {
+        int rows = gameMap.getRows();
+        int cols = gameMap.getCols();
+        int cornerThreshold = 3;
+        
+        // Check if near any corner
+        return (row <= cornerThreshold || row >= rows - cornerThreshold - 1) &&
+               (col <= cornerThreshold || col >= cols - cornerThreshold - 1);
+    }
+    
+    /**
+     * Draws Pac-Man with animated mouth.
+     * Mouth opens/closes based on mouthAngle and rotates based on direction.
      */
     private void drawPacMan(Graphics2D g) {
         int cellSize = gameMap.getCellSize();
         int x = pacMan.getCol() * cellSize + 2;
         int y = pacMan.getRow() * cellSize + 2;
         int size = cellSize - 4;
-        
-        // Draw Pac-Man as a yellow circle
-        g.setColor(Color.YELLOW);
-        g.fillOval(x, y, size, size);
-        
-        // Draw a simple mouth based on direction
-        g.setColor(Color.BLACK);
         int centerX = x + size / 2;
         int centerY = y + size / 2;
         
+        // Draw Pac-Man body as a filled circle with mouth opening
+        g.setColor(Color.YELLOW);
+        double mouthAngle = pacMan.getMouthAngle();
+        
+        // Draw filled arc (Pac-Man body) with mouth opening
+        int startAngle = 0;
+        int arcAngle = 360;
+        
         switch (pacMan.getCurrentDirection()) {
             case PacMan.RIGHT:
-                g.fillPolygon(new int[]{centerX, centerX + 3, centerX + 3}, 
-                             new int[]{centerY - 3, centerY, centerY + 3}, 3);
+                startAngle = (int) mouthAngle;
+                arcAngle = (int) (360 - 2 * mouthAngle);
                 break;
             case PacMan.LEFT:
-                g.fillPolygon(new int[]{centerX, centerX - 3, centerX - 3}, 
-                             new int[]{centerY - 3, centerY, centerY + 3}, 3);
+                startAngle = (int) (180 - mouthAngle);
+                arcAngle = (int) (360 - 2 * mouthAngle);
                 break;
             case PacMan.UP:
-                g.fillPolygon(new int[]{centerX - 3, centerX + 3, centerX}, 
-                             new int[]{centerX - 3, centerX - 3, centerY - 3}, 3);
+                startAngle = (int) (270 - mouthAngle);
+                arcAngle = (int) (360 - 2 * mouthAngle);
                 break;
             case PacMan.DOWN:
-                g.fillPolygon(new int[]{centerX - 3, centerX + 3, centerX}, 
-                             new int[]{centerY + 3, centerY + 3, centerY + 6}, 3);
+                startAngle = (int) (90 - mouthAngle);
+                arcAngle = (int) (360 - 2 * mouthAngle);
                 break;
         }
+        
+        g.fillArc(x, y, size, size, startAngle, arcAngle);
+        
+        // Draw eye
+        g.setColor(Color.BLACK);
+        int eyeSize = 2;
+        int eyeX = x + size / 3;
+        int eyeY = y + size / 3;
+        g.fillOval(eyeX, eyeY, eyeSize, eyeSize);
     }
     
     /**
-     * Draws a single ghost on the screen.
-     * Each ghost is rendered in a different color.
+     * Draws a single ghost with details:
+     * - Colored body (square base)
+     * - Semicircle head on top
+     * - White eyes with black pupils
+     * 
      * @param g the graphics context
      * @param ghost the ghost to draw
      */
@@ -166,34 +205,72 @@ public class GamePanel extends JPanel implements KeyListener {
         int x = ghost.getCol() * cellSize + 2;
         int y = ghost.getRow() * cellSize + 2;
         int size = cellSize - 4;
+        int bodyHeight = size / 2;
         
         // Set ghost color based on type
+        java.awt.Color ghostBodyColor;
         switch (ghost.getGhostColor()) {
             case RED:
-                g.setColor(Color.RED);
+                ghostBodyColor = Color.RED;
                 break;
             case PINK:
-                g.setColor(new Color(255, 184, 255)); // Light pink
+                ghostBodyColor = new Color(255, 184, 255); // Light pink
                 break;
             case CYAN:
-                g.setColor(Color.CYAN);
+                ghostBodyColor = Color.CYAN;
                 break;
             case ORANGE:
-                g.setColor(new Color(255, 165, 0)); // Orange
+                ghostBodyColor = new Color(255, 165, 0); // Orange
                 break;
+            default:
+                ghostBodyColor = Color.WHITE;
         }
         
-        // Draw ghost as a simple filled square with a border
-        g.fillRect(x, y, size, size);
-        g.setColor(Color.BLACK);
-        g.setStroke(new BasicStroke(1));
-        g.drawRect(x, y, size, size);
+        g.setColor(ghostBodyColor);
         
-        // Draw simple ghost eyes (white dots)
+        // Draw ghost body (rectangular bottom)
+        g.fillRect(x, y + bodyHeight / 2, size, bodyHeight);
+        
+        // Draw ghost head (semicircle on top with wavy bottom)
+        g.fillArc(x, y - bodyHeight / 2, size, bodyHeight, 0, 180);
+        
+        // Draw wavy bottom of head using small arcs
+        int waveCount = 3;
+        int waveWidth = size / waveCount;
+        for (int i = 0; i < waveCount; i++) {
+            int waveX = x + (i * waveWidth);
+            int waveY = y + bodyHeight / 2;
+            g.fillArc(waveX, waveY, waveWidth, waveWidth / 2, 0, 180);
+        }
+        
+        // Draw eyes (two white circles with black pupils)
         g.setColor(Color.WHITE);
-        int eyeSize = 2;
-        g.fillOval(x + size / 4 - eyeSize / 2, y + size / 3 - eyeSize / 2, eyeSize, eyeSize);
-        g.fillOval(x + 3 * size / 4 - eyeSize / 2, y + size / 3 - eyeSize / 2, eyeSize, eyeSize);
+        int eyeRadius = 2;
+        int eyeSpacing = size / 3;
+        
+        // Left eye
+        int leftEyeX = x + eyeSpacing - eyeRadius;
+        int leftEyeY = y + bodyHeight / 4 - eyeRadius;
+        g.fillOval(leftEyeX, leftEyeY, eyeRadius * 2, eyeRadius * 2);
+        
+        // Right eye
+        int rightEyeX = x + size - eyeSpacing - eyeRadius;
+        int rightEyeY = y + bodyHeight / 4 - eyeRadius;
+        g.fillOval(rightEyeX, rightEyeY, eyeRadius * 2, eyeRadius * 2);
+        
+        // Draw pupils (black dots inside white eyes)
+        g.setColor(Color.BLACK);
+        int pupilRadius = 1;
+        g.fillOval(leftEyeX + eyeRadius - pupilRadius, leftEyeY + eyeRadius - pupilRadius, 
+                   pupilRadius * 2, pupilRadius * 2);
+        g.fillOval(rightEyeX + eyeRadius - pupilRadius, rightEyeY + eyeRadius - pupilRadius, 
+                   pupilRadius * 2, pupilRadius * 2);
+        
+        // Draw ghost outline
+        g.setColor(ghostBodyColor.darker());
+        g.setStroke(new BasicStroke(1));
+        g.drawRect(x, y + bodyHeight / 2, size, bodyHeight);
+        g.drawArc(x, y - bodyHeight / 2, size, bodyHeight, 0, 180);
     }
     
     /**
@@ -260,3 +337,4 @@ public class GamePanel extends JPanel implements KeyListener {
         // Not used for this simple implementation
     }
 }
+
