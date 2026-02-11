@@ -36,9 +36,14 @@ public class GamePanel extends JPanel implements KeyListener {
         // Load maze from CSV file
         maze = new Maze("level.csv");
         
-        // Initialize Pac-Man at spawn position
+        // Initialize Pac-Man at spawn position (with fallback default)
         Point pacmanSpawn = maze.pacmanSpawn;
-        pacMan = new PacMan(pacmanSpawn.y, pacmanSpawn.x, maze);
+        if (pacmanSpawn != null) {
+            pacMan = new PacMan(pacmanSpawn.y, pacmanSpawn.x, maze);
+        } else {
+            // Default spawn position if not found
+            pacMan = new PacMan(16, 14, maze);
+        }
         
         // Initialize 4 ghosts at positions from maze
         ghosts = new ArrayList<>();
@@ -47,24 +52,32 @@ public class GamePanel extends JPanel implements KeyListener {
         Point blinkySpawn = maze.ghostSpawns.get("blinky");
         if (blinkySpawn != null) {
             ghosts.add(new Ghost("Blinky", Ghost.Color.RED, blinkySpawn.y, blinkySpawn.x, maze));
+        } else {
+            ghosts.add(new Ghost("Blinky", Ghost.Color.RED, 10, 12, maze));
         }
         
         // Pinky (Pink)
         Point pinkySpawn = maze.ghostSpawns.get("pinky");
         if (pinkySpawn != null) {
             ghosts.add(new Ghost("Pinky", Ghost.Color.PINK, pinkySpawn.y, pinkySpawn.x, maze));
+        } else {
+            ghosts.add(new Ghost("Pinky", Ghost.Color.PINK, 10, 13, maze));
         }
         
         // Inky (Cyan)
         Point inkySpawn = maze.ghostSpawns.get("inky");
         if (inkySpawn != null) {
             ghosts.add(new Ghost("Inky", Ghost.Color.CYAN, inkySpawn.y, inkySpawn.x, maze));
+        } else {
+            ghosts.add(new Ghost("Inky", Ghost.Color.CYAN, 10, 14, maze));
         }
         
         // Clyde (Orange)
         Point clydeSpawn = maze.ghostSpawns.get("clyde");
         if (clydeSpawn != null) {
             ghosts.add(new Ghost("Clyde", Ghost.Color.ORANGE, clydeSpawn.y, clydeSpawn.x, maze));
+        } else {
+            ghosts.add(new Ghost("Clyde", Ghost.Color.ORANGE, 10, 15, maze));
         }
         
         // Set panel properties
@@ -86,6 +99,14 @@ public class GamePanel extends JPanel implements KeyListener {
             repaint();
         });
         gameTimer.start();
+    }
+    
+    /**
+     * Returns the size of the maze in pixels.
+     * @return Dimension object with width and height of the maze
+     */
+    public Dimension getMazeSize() {
+        return new Dimension(maze.getCols() * CELL_SIZE, maze.getRows() * CELL_SIZE + 40);
     }
     
     @Override

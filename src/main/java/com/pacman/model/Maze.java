@@ -38,9 +38,11 @@ public class Maze {
         try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
             String line;
             int row = 0;
+            int maxCols = 0;
 
             while ((line = br.readLine()) != null) {
                 char[] rowData = line.toCharArray();
+                maxCols = Math.max(maxCols, rowData.length);
 
                 for (int col = 0; col < rowData.length; col++) {
                     char tile = rowData[col];
@@ -73,22 +75,33 @@ public class Maze {
                 row++;
             }
 
+            if (tempGrid.isEmpty()) {
+                System.err.println("Maze file is empty!");
+                return;
+            }
+
+            rows = tempGrid.size();
+            cols = maxCols;
+            grid = new char[rows][cols];
+
+            // Fill grid with spaces first
+            for (int r = 0; r < rows; r++) {
+                for (int c = 0; c < cols; c++) {
+                    grid[r][c] = ' ';
+                }
+            }
+
+            // Copy data from tempGrid
+            for (int r = 0; r < rows; r++) {
+                char[] rowData = tempGrid.get(r);
+                for (int c = 0; c < rowData.length; c++) {
+                    grid[r][c] = rowData[c];
+                }
+            }
+
         } catch (IOException e) {
             System.err.println("Error loading maze from " + filePath);
             e.printStackTrace();
-        }
-
-        if (tempGrid.isEmpty()) {
-            System.err.println("Maze file is empty!");
-            return;
-        }
-
-        rows = tempGrid.size();
-        cols = tempGrid.get(0).length;
-        grid = new char[rows][cols];
-
-        for (int r = 0; r < rows; r++) {
-            grid[r] = tempGrid.get(r);
         }
 
         System.out.println("Maze loaded: " + rows + " rows, " + cols + " cols");

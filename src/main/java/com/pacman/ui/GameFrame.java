@@ -1,6 +1,7 @@
 package com.pacman.ui;
 
 import javax.swing.JFrame;
+import java.awt.Dimension;
 
 /**
  * GameFrame is the main application window.
@@ -20,8 +21,9 @@ public class GameFrame extends JFrame {
         gamePanel = new GamePanel();
         add(gamePanel);
         
-        // Set frame size to match classic arcade layout proportions
-        setSize(800, 600);
+        // Set window size based on maze
+        Dimension mazeSize = gamePanel.getMazeSize();
+        setSize(mazeSize.width + 16, mazeSize.height + 60);
         
         // Center window on screen
         setLocationRelativeTo(null);
