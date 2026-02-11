@@ -17,6 +17,7 @@ public class GameMap {
     public static final int WALL = 1;
     public static final int DOT = 2;
     public static final int GATE = 3; // Ghost house gate
+    public static final int POWER_PELLET = 4; // Power pellet
     public static final int CELL_SIZE = 30; // pixels per cell
 
     public GameMap() {
@@ -51,6 +52,14 @@ public class GameMap {
 
         // Set the ghost house gate
         grid[8][9] = GATE;
+
+        // Place 6 power pellets at strategic positions
+        grid[1][1] = POWER_PELLET; // Top-left corner
+        grid[1][17] = POWER_PELLET; // Top-right corner
+        grid[19][1] = POWER_PELLET; // Bottom-left corner
+        grid[19][17] = POWER_PELLET; // Bottom-right corner
+        grid[5][9] = POWER_PELLET; // Top-middle
+        grid[16][9] = POWER_PELLET; // Bottom-middle
 
         // Fill remaining empty spaces with dots
         for (int row = 1; row < ROWS - 1; row++) {
@@ -303,20 +312,21 @@ public class GameMap {
     }
 
     /**
-     * Tries to eat a dot at the specified position.
+     * Tries to eat a dot or power pellet at the specified position.
      * 
      * @param row the row position
      * @param col the column position
-     * @return true if a dot was eaten, false otherwise
+     * @return tile type that was eaten (DOT or POWER_PELLET), or 0 if nothing
      */
-    public boolean eatDot(int row, int col) {
+    public int eatDot(int row, int col) {
         if (row >= 0 && row < ROWS && col >= 0 && col < COLS) {
-            if (grid[row][col] == DOT) {
+            int tile = grid[row][col];
+            if (tile == DOT || tile == POWER_PELLET) {
                 grid[row][col] = EMPTY;
-                return true;
+                return tile;
             }
         }
-        return false;
+        return 0;
     }
 
     /**
@@ -339,6 +349,7 @@ public class GameMap {
     /**
      * Resets all empty spaces back to dots for a new level.
      * Preserves walls, gate, and ghost spawn area.
+     * Restores power pellets at their positions.
      */
     public void resetDots() {
         for (int row = 1; row < ROWS - 1; row++) {
@@ -356,6 +367,14 @@ public class GameMap {
         }
         // Ensure gate stays as gate
         grid[8][9] = GATE;
+
+        // Restore power pellets
+        grid[1][1] = POWER_PELLET;
+        grid[1][17] = POWER_PELLET;
+        grid[19][1] = POWER_PELLET;
+        grid[19][17] = POWER_PELLET;
+        grid[5][9] = POWER_PELLET;
+        grid[16][9] = POWER_PELLET;
     }
 
     public int getRows() {

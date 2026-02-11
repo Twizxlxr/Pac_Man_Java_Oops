@@ -44,6 +44,12 @@ public class GamePanel extends JPanel implements KeyListener {
     // Ghost release tracking
     private long frameCount = 0;
 
+    // Power mode state
+    private boolean powerModeActive = false;
+    private int powerModeTimer = 0; // frames remaining
+    private static final int POWER_MODE_DURATION = 53; // 8 seconds at 150ms = ~53 frames
+    private int ghostsEatenThisPower = 0;
+
     // Scoreboard height
     private static final int SCOREBOARD_HEIGHT = 44;
 
@@ -118,8 +124,35 @@ public class GamePanel extends JPanel implements KeyListener {
             pacMan.update();
 
             // Pellet collection
-            if (gameMap.eatDot(pacMan.getRow(), pacMan.getCol())) {
+            int pelletType = gameMap.eatDot(pacMan.getRow(), pacMan.getCol());
+            if (pelletType == GameMap.DOT) {
                 score += 10;
+            } else if (pelletType == GameMap.POWER_PELLET) {
+                score += 50;
+                // Activate power mode
+                powerModeActive = true;
+                powerModeTimer = POWER_MODE_DURATION;
+                ghostsEatenThisPower = 0;
+                // Set all active ghosts to FRIGHTENED
+                for (Ghost ghost : ghosts) {
+                    if (ghost.getState() == Ghost.State.CHASING || ghost.getState() == Ghost.State.SCATTER) {
+                        ghost.setState(Ghost.State.FRIGHTENED);
+                    }
+                }
+            }
+
+            // Power mode timer
+            if (powerModeActive) {
+                powerModeTimer--;
+                if (powerModeTimer <= 0) {
+                    powerModeActive = false;
+                    // Revert ghosts back to CHASING
+                    for (Ghost ghost : ghosts) {
+                        if (ghost.getState() == Ghost.State.FRIGHTENED) {
+                            ghost.setState(Ghost.State.CHASING);
+                        }
+                    }
+                }
             }
 
             // Level completion
@@ -348,22 +381,19 @@ public class GamePanel extends JPanel implements KeyListener {
                     g.drawRect(x, y, cellSize, cellSize);
 
                     if (tileType == GameMap.DOT) {
-                        if (isCornerPosition(row, col)) {
-                            // Power pellet - larger, glowing
-                            int dotSize = 8;
-                            g.setColor(new Color(255, 255, 220, 200));
-                            g.fillOval(x + cellSize / 2 - dotSize / 2 - 1, y + cellSize / 2 - dotSize / 2 - 1,
-                                    dotSize + 2, dotSize + 2);
-                            g.setColor(Color.WHITE);
-                            g.fillOval(x + cellSize / 2 - dotSize / 2, y + cellSize / 2 - dotSize / 2, dotSize,
-                                    dotSize);
-                        } else {
-                            // Regular pellet
-                            g.setColor(new Color(255, 230, 180));
-                            int dotSize = 3;
-                            g.fillOval(x + cellSize / 2 - dotSize / 2, y + cellSize / 2 - dotSize / 2, dotSize,
-                                    dotSize);
-                        }
+                        // Regular pellet - all same size
+                        g.setColor(new Color(255, 230, 180));
+                        int dotSize = 3;
+                        g.fillOval(x + cellSize / 2 - dotSize / 2, y + cellSize / 2 - dotSize / 2, dotSize, dotSize);
+                    } else if (tileType == GameMap.POWER_PELLET) {
+                        // Power pellet - larger with pulsing glow
+                        int dotSize = 10;
+                        g.setColor(new Color(255, 255, 220, (int) (100 * (1 + wallGlow))));
+                        g.fillOval(x + cellSize / 2 - dotSize / 2 - 2, y + cellSize / 2 - dotSize / 2 - 2,
+                                dotSize + 4, dotSize + 4);
+                        g.setColor(Color.WHITE);
+                        g.fillOval(x + cellSize / 2 - dotSize / 2, y + cellSize / 2 - dotSize / 2, dotSize,
+                                dotSize);
                     }
                 }
             }
@@ -386,17 +416,6 @@ public class GamePanel extends JPanel implements KeyListener {
         g.setColor(new Color(0, (int) (180 + wallGlow * 40), borderB));
         g.setStroke(new BasicStroke(1.5f));
         g.drawRoundRect(x + 1, y + 1, cellSize - 2, cellSize - 2, 6, 6);
-    }
-
-    /**
-     * Determines if a position is in a corner (for power pellet placement).
-     */
-    private boolean isCornerPosition(int row, int col) {
-        int rows = gameMap.getRows();
-        int cols = gameMap.getCols();
-        int cornerThreshold = 3;
-        return (row <= cornerThreshold || row >= rows - cornerThreshold - 1) &&
-                (col <= cornerThreshold || col >= cols - cornerThreshold - 1);
     }
 
     /**
@@ -458,22 +477,48 @@ public class GamePanel extends JPanel implements KeyListener {
         int size = cellSize - 4;
         int bodyHeight = size / 2;
 
+        // EATEN ghosts: draw only eyes returning to spawn
+        if (ghost.getState() == Ghost.State.EATEN) {
+            g.setColor(Color.WHITE);
+            int eyeRadius = 3;
+            int eyeSpacing = size / 3;
+            int leftEyeX = x + eyeSpacing - eyeRadius;
+            int leftEyeY = y + bodyHeight / 4 - eyeRadius;
+            g.fillOval(leftEyeX, leftEyeY, eyeRadius * 2, eyeRadius * 2);
+            int rightEyeX = x + size - eyeSpacing - eyeRadius;
+            int rightEyeY = y + bodyHeight / 4 - eyeRadius;
+            g.fillOval(rightEyeX, rightEyeY, eyeRadius * 2, eyeRadius * 2);
+            g.setColor(Color.BLACK);
+            int pupilRadius = 1;
+            g.fillOval(leftEyeX + eyeRadius - pupilRadius, leftEyeY + eyeRadius - pupilRadius,
+                    pupilRadius * 2, pupilRadius * 2);
+            g.fillOval(rightEyeX + eyeRadius - pupilRadius, rightEyeY + eyeRadius - pupilRadius,
+                    pupilRadius * 2, pupilRadius * 2);
+            return;
+        }
+
+        // Determine body color based on state
         java.awt.Color ghostBodyColor;
-        switch (ghost.getGhostColor()) {
-            case RED:
-                ghostBodyColor = Color.RED;
-                break;
-            case PINK:
-                ghostBodyColor = new Color(255, 184, 255);
-                break;
-            case CYAN:
-                ghostBodyColor = Color.CYAN;
-                break;
-            case ORANGE:
-                ghostBodyColor = new Color(255, 165, 0);
-                break;
-            default:
-                ghostBodyColor = Color.WHITE;
+        if (ghost.getState() == Ghost.State.FRIGHTENED) {
+            // Frightened ghosts are dark blue
+            ghostBodyColor = new Color(33, 33, 255);
+        } else {
+            switch (ghost.getGhostColor()) {
+                case RED:
+                    ghostBodyColor = Color.RED;
+                    break;
+                case PINK:
+                    ghostBodyColor = new Color(255, 184, 255);
+                    break;
+                case CYAN:
+                    ghostBodyColor = Color.CYAN;
+                    break;
+                case ORANGE:
+                    ghostBodyColor = new Color(255, 165, 0);
+                    break;
+                default:
+                    ghostBodyColor = Color.WHITE;
+            }
         }
 
         g.setColor(ghostBodyColor);
@@ -635,34 +680,43 @@ public class GamePanel extends JPanel implements KeyListener {
 
     /**
      * Checks for collisions between Pac-Man and ghosts.
+     * During power mode, Pac-Man can eat FRIGHTENED ghosts for bonus points.
      */
     private void checkCollisions() {
         for (Ghost ghost : ghosts) {
-            // Only collide with active ghosts
-            if (ghost.getState() != Ghost.State.CHASING && ghost.getState() != Ghost.State.SCATTER) {
-                continue;
-            }
             if (ghost.collidesWith(pacMan.getRow(), pacMan.getCol())) {
-                lives--;
-                System.out.println("COLLISION! Lives remaining: " + lives);
+                // Power mode: Pac-Man eats FRIGHTENED ghosts
+                if (powerModeActive && ghost.getState() == Ghost.State.FRIGHTENED) {
+                    int bonus = 200 * (1 << ghostsEatenThisPower);
+                    score += bonus;
+                    ghostsEatenThisPower++;
+                    System.out.println("GHOST EATEN! +" + bonus + " points");
+                    ghost.markAsEaten();
+                    continue;
+                }
+                // Normal collision: ghost harms Pac-Man
+                if (ghost.getState() == Ghost.State.CHASING || ghost.getState() == Ghost.State.SCATTER) {
+                    lives--;
+                    System.out.println("COLLISION! Lives remaining: " + lives);
 
-                if (lives <= 0) {
-                    gameOver = true;
-                    gameTimer.stop();
-                    repaint(); // Force repaint to show game over
+                    if (lives <= 0) {
+                        gameOver = true;
+                        gameTimer.stop();
+                        repaint();
+                        return;
+                    }
+
+                    // Reset positions
+                    pacMan.resetPosition(17, 9);
+                    for (Ghost g : ghosts) {
+                        g.resetPosition();
+                    }
+                    if (!ghosts.isEmpty()) {
+                        ghosts.get(0).setState(Ghost.State.CHASING);
+                    }
+                    frameCount = 0;
                     return;
                 }
-
-                // Reset positions — spawn far from ghosts
-                pacMan.resetPosition(17, 9);
-                for (Ghost g : ghosts) {
-                    g.resetPosition();
-                }
-                if (!ghosts.isEmpty()) {
-                    ghosts.get(0).setState(Ghost.State.CHASING);
-                }
-                frameCount = 0;
-                return;
             }
         }
     }

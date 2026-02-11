@@ -32,7 +32,8 @@ public class Ghost {
         EXITING, // Leaving the ghost house
         CHASING, // Chasing Pac-Man
         SCATTER, // Moving to corner (optional, used for variety)
-        FRIGHTENED // Running away (blue)
+        FRIGHTENED, // Running away (blue)
+        EATEN // Eyes returning to spawn after being eaten
     }
 
     private State state = State.WAITING;
@@ -80,7 +81,16 @@ public class Ghost {
      */
     public void update(PacMan pacMan) {
         updateCounter++;
-        if (updateCounter < speedRatio) {
+
+        // Frightened ghosts move at 70% speed (higher threshold)
+        int effectiveSpeed = speedRatio;
+        if (state == State.FRIGHTENED) {
+            effectiveSpeed = (int) Math.ceil(speedRatio * 1.43); // ~70% speed
+        } else if (state == State.EATEN) {
+            effectiveSpeed = 1; // Eaten ghosts rush back to spawn
+        }
+
+        if (updateCounter < effectiveSpeed) {
             return; // Skip this update to make ghost slower
         }
         updateCounter = 0;
@@ -88,14 +98,10 @@ public class Ghost {
         // Determine target based on state
         switch (state) {
             case WAITING:
-                // Move up and down inside the house or stay put
-                // For now, just stay put until state changes
                 return;
             case EXITING:
-                // Target the house exit (row 8, col 9)
                 targetRow = 8;
                 targetCol = 9;
-                // If reached exit, switch to Chasing
                 if (row == 8 && (col == 9 || col == 8 || col == 10)) {
                     state = State.CHASING;
                 }
@@ -105,11 +111,19 @@ public class Ghost {
                 targetCol = pacMan.getCol();
                 break;
             case SCATTER:
-                // Set target to corner based on color
                 setScatterTarget();
                 break;
             case FRIGHTENED:
-                // Random movement handled separately or by setting random target
+                // Target Pac-Man but with 50/50 random ratio (handled in moveTowardsTarget)
+                targetRow = pacMan.getRow();
+                targetCol = pacMan.getCol();
+                break;
+            case EATEN:
+                targetRow = startRow;
+                targetCol = startCol;
+                if (row == startRow && col == startCol) {
+                    state = State.WAITING;
+                }
                 break;
         }
 
@@ -157,8 +171,12 @@ public class Ghost {
             return;
         }
 
-        // 70% chase, 30% random
-        if (random.nextDouble() < 0.7 && bestDirection != -1) {
+        // Determine chase ratio based on state
+        // FRIGHTENED: 50% chase / 50% random
+        // Normal: 70% chase / 30% random
+        double chaseChance = (state == State.FRIGHTENED) ? 0.5 : 0.7;
+
+        if (random.nextDouble() < chaseChance && bestDirection != -1) {
             moveInDirection(bestDirection);
         } else {
             // Pick a random valid direction
@@ -341,5 +359,13 @@ public class Ghost {
 
     public int getCurrentDirection() {
         return currentDirection;
+    }
+
+    /**
+     * Marks this ghost as eaten by Pac-Man.
+     * Sends the ghost back to spawn in EATEN state.
+     */
+    public void markAsEaten() {
+        this.state = State.EATEN;
     }
 }
