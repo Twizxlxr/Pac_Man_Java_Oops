@@ -126,9 +126,9 @@ public class GamePanel extends JPanel implements KeyListener {
             // Pellet collection
             int pelletType = gameMap.eatDot(pacMan.getRow(), pacMan.getCol());
             if (pelletType == GameMap.DOT) {
-                score += 10;
+                score += 10 * level; // Points scale with level
             } else if (pelletType == GameMap.POWER_PELLET) {
-                score += 50;
+                score += 50 * level; // Points scale with level
                 // Activate power mode
                 powerModeActive = true;
                 powerModeTimer = POWER_MODE_DURATION;
