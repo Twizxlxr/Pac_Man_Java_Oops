@@ -7,7 +7,10 @@ import java.util.Random;
  * Uses simple random movement logic with no complex AI or pathfinding.
  * Ghosts respect wall boundaries and stay within the maze.
  * 
- * This simple implementation is suitable for beginner-level game development.
+ * Ghosts move slightly slower than Pac-Man and are displayed with:
+ * - A colored body (red, pink, cyan, or orange)
+ * - A semicircle head with wavy bottom pattern
+ * - Two white eyes with black pupils
  */
 public class Ghost {
     private int row;
@@ -17,6 +20,9 @@ public class Ghost {
     private int currentDirection;
     private String name;
     private Color ghostColor;
+    
+    private int updateCounter = 0; // Counter to make ghosts move slower than Pac-Man
+    private static final int SPEED_RATIO = 2; // Ghosts move every 2 game updates (slower)
     
     // Direction constants (same as PacMan)
     public static final int UP = 0;
@@ -49,16 +55,20 @@ public class Ghost {
     
     /**
      * Updates ghost position using simple random movement.
+     * Ghosts move slower than Pac-Man (every SPEED_RATIO calls).
      * 
      * Logic:
      * 1. Try to move in the current direction
      * 2. If blocked by a wall, pick a new random direction
      * 3. Move in the new direction if possible
-     * 
-     * This simple AI is suitable for a beginner game and doesn't
-     * require complex pathfinding algorithms.
      */
     public void update() {
+        updateCounter++;
+        if (updateCounter < SPEED_RATIO) {
+            return; // Skip this update to make ghost slower
+        }
+        updateCounter = 0;
+        
         // Try to move in current direction
         if (canMoveInDirection(currentDirection)) {
             moveInDirection(currentDirection);
@@ -92,7 +102,7 @@ public class Ghost {
     /**
      * Finds a new valid random direction when blocked.
      * Tries up to 4 random directions to find a walkable path.
-     * If no direction works, the ghost stays in place (typically won't happen in open mazes).
+     * If no direction works, the ghost stays in place (typically won't happen).
      */
     private void findNewDirection() {
         int attempts = 0;
@@ -163,3 +173,4 @@ public class Ghost {
         return currentDirection;
     }
 }
+

@@ -59,24 +59,163 @@ public class GameMap {
     }
     
     /**
-     * Creates internal walls to form a simple maze pattern.
+     * Creates a classic Pac-Man arcade maze with:
+     * - Outer boundary loop
+     * - Central ghost spawn box
+     * - Long horizontal corridors
+     * - Vertical connectors
+     * - Side tunnels
+     * - Symmetrical layout
      */
     private void createInternalWalls() {
-        // Horizontal wall segments
-        for (int col = 3; col < COLS - 3; col += 5) {
-            for (int row = 5; row <= 15; row += 5) {
-                if (row < ROWS - 1 && col < COLS - 1) {
-                    grid[row][col] = WALL;
-                    grid[row][col + 1] = WALL;
-                    grid[row][col + 2] = WALL;
+        // ===== OUTER LOOP =====
+        // Already created by border walls
+        
+        // ===== CENTRAL GHOST SPAWN BOX =====
+        // 4x4 box in center (rows 9-10, cols 8-10)
+        for (int row = 9; row <= 10; row++) {
+            for (int col = 8; col <= 10; col++) {
+                grid[row][col] = EMPTY; // Clear for ghost spawn area
+            }
+        }
+        // Draw box walls
+        for (int col = 7; col <= 11; col++) {
+            grid[8][col] = WALL;
+            grid[11][col] = WALL;
+        }
+        for (int row = 8; row <= 11; row++) {
+            grid[row][7] = WALL;
+            grid[row][11] = WALL;
+        }
+        
+        // ===== LEFT SIDE VERTICAL CORRIDORS =====
+        createSymmetricalPattern(2, 16);
+        
+        // ===== RIGHT SIDE VERTICAL CORRIDORS =====
+        // Mirror pattern on right (done by symmetrical function)
+        
+        // ===== HORIZONTAL CORRIDORS =====
+        // Top horizontal corridor (row 5)
+        createHorizontalCorridor(5, 2, 8);
+        createHorizontalCorridor(5, 10, 16);
+        
+        // Middle-upper corridor (row 9)
+        createHorizontalCorridor(9, 1, 7);
+        createHorizontalCorridor(9, 11, 17);
+        
+        // Middle-lower corridor (row 11)
+        createHorizontalCorridor(11, 1, 7);
+        createHorizontalCorridor(11, 11, 17);
+        
+        // Bottom corridor (row 16)
+        createHorizontalCorridor(16, 2, 8);
+        createHorizontalCorridor(16, 10, 16);
+        
+        // ===== VERTICAL CONNECTORS =====
+        createVerticalCorridor(2, 3, 4);  // Left
+        createVerticalCorridor(2, 14, 16); // Right
+        
+        createVerticalCorridor(7, 3, 4);
+        createVerticalCorridor(7, 14, 16);
+        
+        createVerticalCorridor(12, 3, 4);
+        createVerticalCorridor(12, 14, 16);
+        
+        createVerticalCorridor(17, 3, 4);
+        createVerticalCorridor(17, 14, 16);
+        
+        // ===== LEFT AND RIGHT SIDE TUNNELS =====
+        // Left tunnel (open ends for wrap-around)
+        for (int row = 9; row <= 11; row++) {
+            grid[row][1] = EMPTY;
+        }
+        
+        // Right tunnel mirror
+        for (int row = 9; row <= 11; row++) {
+            grid[row][17] = EMPTY;
+        }
+        
+        // ===== INTERNAL MAZE PATTERNS =====
+        // Top-left quadrant walls
+        createMazeBlock(3, 7, 4, 7);
+        createMazeBlock(3, 7, 7, 5);
+        
+        // Top-right quadrant walls (mirror)
+        createMazeBlock(3, 11, 4, 11);
+        createMazeBlock(3, 11, 7, 13);
+        
+        // Bottom-left quadrant walls
+        createMazeBlock(16, 7, 17, 7);
+        createMazeBlock(16, 7, 13, 5);
+        
+        // Bottom-right quadrant walls (mirror)
+        createMazeBlock(16, 11, 17, 11);
+        createMazeBlock(16, 11, 13, 13);
+    }
+    
+    /**
+     * Creates a horizontal corridor (empty spaces between walls).
+     * @param row the row for the corridor
+     * @param colStart starting column
+     * @param colEnd ending column
+     */
+    private void createHorizontalCorridor(int row, int colStart, int colEnd) {
+        for (int col = colStart; col <= colEnd; col++) {
+            grid[row][col] = EMPTY;
+        }
+    }
+    
+    /**
+     * Creates a vertical corridor.
+     * @param col the column for the corridor
+     * @param rowStart starting row
+     * @param rowEnd ending row
+     */
+    private void createVerticalCorridor(int col, int rowStart, int rowEnd) {
+        for (int row = rowStart; row <= rowEnd; row++) {
+            grid[row][col] = EMPTY;
+        }
+    }
+    
+    /**
+     * Creates maze wall blocks for internal pattern.
+     * @param row1 first row
+     * @param col1 first column
+     * @param row2 second row
+     * @param col2 second column
+     */
+    private void createMazeBlock(int row1, int col1, int row2, int col2) {
+        int minRow = Math.min(row1, row2);
+        int maxRow = Math.max(row1, row2);
+        int minCol = Math.min(col1, col2);
+        int maxCol = Math.max(col1, col2);
+        
+        for (int row = minRow; row <= maxRow; row++) {
+            if (row >= 0 && row < ROWS) {
+                for (int col = minCol; col <= maxCol; col++) {
+                    if (col >= 0 && col < COLS && grid[row][col] != EMPTY) {
+                        grid[row][col] = WALL;
+                    }
                 }
             }
         }
-        
-        // Vertical wall segments
-        for (int row = 3; row < ROWS - 3; row += 5) {
-            for (int col = 5; col <= 15; col += 5) {
-                if (row < ROWS - 1 && col < COLS - 1) {
+    }
+    
+    /**
+     * Creates a symmetrical pattern for maze structure.
+     * @param colStart starting column for left side
+     * @param colEnd ending column for left side
+     */
+    private void createSymmetricalPattern(int colStart, int colEnd) {
+        // Create walls in multiple columns for visual maze pattern
+        for (int row = 3; row < ROWS - 3; row += 3) {
+            for (int col = colStart; col <= (colStart + 2); col++) {
+                if (grid[row][col] != EMPTY) {
+                    grid[row][col] = WALL;
+                }
+            }
+            for (int col = (colEnd - 2); col <= colEnd; col++) {
+                if (grid[row][col] != EMPTY) {
                     grid[row][col] = WALL;
                 }
             }
