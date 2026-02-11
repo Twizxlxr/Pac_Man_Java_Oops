@@ -11,18 +11,19 @@ public class GameMap {
     private int[][] grid;
     private static final int ROWS = 21;
     private static final int COLS = 19;
-    
+
     // Tile types
     public static final int EMPTY = 0;
     public static final int WALL = 1;
     public static final int DOT = 2;
+    public static final int GATE = 3; // Ghost house gate
     public static final int CELL_SIZE = 30; // pixels per cell
-    
+
     public GameMap() {
         grid = new int[ROWS][COLS];
         initializeMap();
     }
-    
+
     /**
      * Initializes the game map with walls and dots.
      * Creates a border of walls and some internal walls for gameplay.
@@ -34,7 +35,7 @@ public class GameMap {
                 grid[row][col] = EMPTY;
             }
         }
-        
+
         // Create border walls
         for (int row = 0; row < ROWS; row++) {
             grid[row][0] = WALL;
@@ -44,10 +45,13 @@ public class GameMap {
             grid[0][col] = WALL;
             grid[ROWS - 1][col] = WALL;
         }
-        
+
         // Create some internal walls to make the maze interesting
         createInternalWalls();
-        
+
+        // Set the ghost house gate
+        grid[8][9] = GATE;
+
         // Fill remaining empty spaces with dots
         for (int row = 1; row < ROWS - 1; row++) {
             for (int col = 1; col < COLS - 1; col++) {
@@ -57,7 +61,7 @@ public class GameMap {
             }
         }
     }
-    
+
     /**
      * Creates a classic Pac-Man arcade maze with:
      * - Outer boundary loop
@@ -70,7 +74,7 @@ public class GameMap {
     private void createInternalWalls() {
         // ===== OUTER LOOP =====
         // Already created by border walls
-        
+
         // ===== CENTRAL GHOST SPAWN BOX =====
         // 4x4 box in center (rows 9-10, cols 8-10)
         for (int row = 9; row <= 10; row++) {
@@ -87,98 +91,101 @@ public class GameMap {
             grid[row][7] = WALL;
             grid[row][11] = WALL;
         }
-        
+
         // ===== LEFT SIDE VERTICAL CORRIDORS =====
         createSymmetricalPattern(2, 16);
-        
+
         // ===== RIGHT SIDE VERTICAL CORRIDORS =====
         // Mirror pattern on right (done by symmetrical function)
-        
+
         // ===== HORIZONTAL CORRIDORS =====
         // Top horizontal corridor (row 5)
         createHorizontalCorridor(5, 2, 8);
         createHorizontalCorridor(5, 10, 16);
-        
+
         // Middle-upper corridor (row 9)
         createHorizontalCorridor(9, 1, 7);
         createHorizontalCorridor(9, 11, 17);
-        
+
         // Middle-lower corridor (row 11)
         createHorizontalCorridor(11, 1, 7);
         createHorizontalCorridor(11, 11, 17);
-        
+
         // Bottom corridor (row 16)
         createHorizontalCorridor(16, 2, 8);
         createHorizontalCorridor(16, 10, 16);
-        
+
         // ===== VERTICAL CONNECTORS =====
-        createVerticalCorridor(2, 3, 4);  // Left
+        createVerticalCorridor(2, 3, 4); // Left
         createVerticalCorridor(2, 14, 16); // Right
-        
+
         createVerticalCorridor(7, 3, 4);
         createVerticalCorridor(7, 14, 16);
-        
+
         createVerticalCorridor(12, 3, 4);
         createVerticalCorridor(12, 14, 16);
-        
+
         createVerticalCorridor(17, 3, 4);
         createVerticalCorridor(17, 14, 16);
-        
+
         // ===== LEFT AND RIGHT SIDE TUNNELS =====
         // Left tunnel (open ends for wrap-around)
         for (int row = 9; row <= 11; row++) {
             grid[row][1] = EMPTY;
         }
-        
+
         // Right tunnel mirror
         for (int row = 9; row <= 11; row++) {
             grid[row][17] = EMPTY;
         }
-        
+
         // ===== INTERNAL MAZE PATTERNS =====
         // Top-left quadrant walls
         createMazeBlock(3, 7, 4, 7);
         createMazeBlock(3, 7, 7, 5);
-        
+
         // Top-right quadrant walls (mirror)
         createMazeBlock(3, 11, 4, 11);
         createMazeBlock(3, 11, 7, 13);
-        
+
         // Bottom-left quadrant walls
         createMazeBlock(16, 7, 17, 7);
         createMazeBlock(16, 7, 13, 5);
-        
+
         // Bottom-right quadrant walls (mirror)
         createMazeBlock(16, 11, 17, 11);
         createMazeBlock(16, 11, 13, 13);
     }
-    
+
     /**
      * Creates a horizontal corridor (empty spaces between walls).
-     * @param row the row for the corridor
+     * 
+     * @param row      the row for the corridor
      * @param colStart starting column
-     * @param colEnd ending column
+     * @param colEnd   ending column
      */
     private void createHorizontalCorridor(int row, int colStart, int colEnd) {
         for (int col = colStart; col <= colEnd; col++) {
             grid[row][col] = EMPTY;
         }
     }
-    
+
     /**
      * Creates a vertical corridor.
-     * @param col the column for the corridor
+     * 
+     * @param col      the column for the corridor
      * @param rowStart starting row
-     * @param rowEnd ending row
+     * @param rowEnd   ending row
      */
     private void createVerticalCorridor(int col, int rowStart, int rowEnd) {
         for (int row = rowStart; row <= rowEnd; row++) {
             grid[row][col] = EMPTY;
         }
     }
-    
+
     /**
      * Creates maze wall blocks for internal pattern.
+     * 
      * @param row1 first row
      * @param col1 first column
      * @param row2 second row
@@ -189,7 +196,7 @@ public class GameMap {
         int maxRow = Math.max(row1, row2);
         int minCol = Math.min(col1, col2);
         int maxCol = Math.max(col1, col2);
-        
+
         for (int row = minRow; row <= maxRow; row++) {
             if (row >= 0 && row < ROWS) {
                 for (int col = minCol; col <= maxCol; col++) {
@@ -200,11 +207,12 @@ public class GameMap {
             }
         }
     }
-    
+
     /**
      * Creates a symmetrical pattern for maze structure.
+     * 
      * @param colStart starting column for left side
-     * @param colEnd ending column for left side
+     * @param colEnd   ending column for left side
      */
     private void createSymmetricalPattern(int colStart, int colEnd) {
         // Create walls in multiple columns for visual maze pattern
@@ -221,22 +229,55 @@ public class GameMap {
             }
         }
     }
-    
+
     /**
      * Checks if a position is walkable (not a wall and within bounds).
+     * 
      * @param row the row position
      * @param col the column position
      * @return true if the position is not a wall and within bounds
      */
+    /**
+     * Checks if a position is walkable.
+     * by default assumes it's Pac-Man (cannot pass gate).
+     * 
+     * @param row the row position
+     * @param col the column position
+     * @return true if walkable
+     */
     public boolean isWalkable(int row, int col) {
+        return isWalkable(row, col, false);
+    }
+
+    /**
+     * Checks if a position is walkable for a specific entity.
+     * 
+     * @param row     the row position
+     * @param col     the column position
+     * @param isGhost true if checking for a ghost, false for Pac-Man
+     * @return true if the position is not a wall and within bounds
+     */
+    public boolean isWalkable(int row, int col, boolean isGhost) {
         if (row < 0 || row >= ROWS || col < 0 || col >= COLS) {
             return false; // Out of bounds
         }
-        return grid[row][col] != WALL;
+
+        int tile = grid[row][col];
+
+        if (tile == WALL) {
+            return false;
+        }
+
+        if (tile == GATE) {
+            return isGhost; // Only ghosts can pass the gate
+        }
+
+        return true;
     }
-    
+
     /**
      * Gets the tile type at a specific position.
+     * 
      * @param row the row position
      * @param col the column position
      * @return the tile type (EMPTY, WALL, or DOT)
@@ -247,11 +288,12 @@ public class GameMap {
         }
         return grid[row][col];
     }
-    
+
     /**
      * Sets a tile at a specific position.
-     * @param row the row position
-     * @param col the column position
+     * 
+     * @param row  the row position
+     * @param col  the column position
      * @param type the tile type to set
      */
     public void setTile(int row, int col, int type) {
@@ -259,15 +301,32 @@ public class GameMap {
             grid[row][col] = type;
         }
     }
-    
+
+    /**
+     * Tries to eat a dot at the specified position.
+     * 
+     * @param row the row position
+     * @param col the column position
+     * @return true if a dot was eaten, false otherwise
+     */
+    public boolean eatDot(int row, int col) {
+        if (row >= 0 && row < ROWS && col >= 0 && col < COLS) {
+            if (grid[row][col] == DOT) {
+                grid[row][col] = EMPTY;
+                return true;
+            }
+        }
+        return false;
+    }
+
     public int getRows() {
         return ROWS;
     }
-    
+
     public int getCols() {
         return COLS;
     }
-    
+
     public int getCellSize() {
         return CELL_SIZE;
     }
