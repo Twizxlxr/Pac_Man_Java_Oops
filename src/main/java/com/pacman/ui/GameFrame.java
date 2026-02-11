@@ -1,14 +1,18 @@
 package com.pacman.ui;
 
-import javax.swing.JFrame;
-import java.awt.Dimension;
+import com.pacman.core.UIPanel;
+
+import javax.swing.*;
+import java.awt.*;
+import java.io.IOException;
 
 /**
  * GameFrame is the main application window.
- * Sets up the window and contains the GamePanel.
+ * Sets up the window and contains the GamePanel and UIPanel.
  */
 public class GameFrame extends JFrame {
     private GamePanel gamePanel;
+    private UIPanel uiPanel;
     
     public GameFrame() {
         super("Pac-Man Game");
@@ -16,14 +20,25 @@ public class GameFrame extends JFrame {
         // Configure frame
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setResizable(false);
-        
-        // Create and add game panel
-        gamePanel = new GamePanel();
-        add(gamePanel);
-        
-        // Set window size based on maze
-        Dimension mazeSize = gamePanel.getMazeSize();
-        setSize(mazeSize.width + 16, mazeSize.height + 60);
+
+        JPanel gameWindow = new JPanel();
+        gameWindow.setLayout(new FlowLayout(FlowLayout.LEFT, 0, 0));
+
+        // Create UI Panel for score
+        uiPanel = new UIPanel(256, 496);
+
+        // Create game panel
+        try {
+            gamePanel = new GamePanel(uiPanel);
+            gameWindow.add(gamePanel);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        gameWindow.add(uiPanel);
+
+        setContentPane(gameWindow);
+        pack();
         
         // Center window on screen
         setLocationRelativeTo(null);

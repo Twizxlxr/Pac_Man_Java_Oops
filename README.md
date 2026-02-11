@@ -1,151 +1,334 @@
 # Pac-Man Game (Java Swing)
 
-A classic-style Pac-Man game implementation using Java Swing, featuring a redesigned arcade maze, 4 animated ghosts, and Pac-Man mouth animation.
+A classic Pac-Man game implementation using Java Swing, featuring design patterns for clean, maintainable code architecture.
 
-## Features
-
-- **Classic Arcade Maze**: 19x21 grid designed to closely match the original Pac-Man layout
-  - Outer boundary loop
-  - Central ghost spawn box
-  - Long horizontal corridors
-  - Vertical connectors
-  - Side tunnels
-  - Symmetrical design
-- **Pac-Man Character**: Animated yellow player-controlled character
-  - Smooth keyboard-controlled movement (arrow keys)
-  - Animated mouth that opens and closes while moving
-  - Mouth direction rotates based on movement direction
-- **4 Animated Ghosts**: Distinct enemy characters with personality
-  - **Blinky** (Red) - spawns at center
-  - **Pinky** (Pink) - spawns at top-left
-  - **Inky** (Cyan) - spawns at top-right
-  - **Clyde** (Orange) - spawns at bottom
-  - Semi-circle heads with wavy bottoms
-  - White eyes with black pupils
-  - Random movement respecting maze walls
-  - Move slightly slower than Pac-Man
-- **Wall Collision Detection**: Prevents movement through walls
-- **Ghost Collision Detection**: Penalizes score when colliding with ghosts
-- **Advanced Graphics**: Graphics2D rendering with polished visuals
-  - Thick blue walls with rounded edges
-  - Black background
-  - White pellets along paths
-  - Larger power pellets in corner positions
-  - Antialiased graphics for smooth appearance
-
-## Project Structure
-
-```
-src/main/java/com/pacman/
-├── game/          # Game logic (extensible for future features)
-├── model/         # Game data models
-│   ├── GameMap.java    # 2D grid with classic arcade maze design
-│   ├── PacMan.java     # Player character with mouth animation
-│   └── Ghost.java      # Enemy characters with random movement
-└── ui/            # GUI components
-    ├── GameFrame.java  # Main application window
-    └── GamePanel.java  # Game rendering and game loop
-```
-
-## How to Compile
+## Quick Start
 
 ```bash
-javac -d build/classes -sourcepath src/main/java src/main/java/com/pacman/model/*.java src/main/java/com/pacman/ui/*.java
-```
+# Compile
+javac -d build/classes -sourcepath src/main/java @.javacfiles.txt
 
-## How to Run
-
-```bash
+# Run
 java -cp build/classes com.pacman.ui.GameFrame
 ```
 
 ## Controls
 
-- **Arrow Keys**: Move Pac-Man up, down, left, or right
+- **Arrow Keys**: Move Pac-Man (up, down, left, right)
 - **Close Window**: Exit game
 
-## Game Details
+---
 
-- **Blue Walls**: Boundaries and maze structure with thick rounded edges
-- **White Dots**: Pellets to collect (small dots along paths)
-- **White Larger Dots**: Power pellets in corner positions
-- **Yellow Circle with Animated Mouth**: Pac-Man (the player)
-- **Colored Ghosts**:
-  - Red ghost (Blinky)
-  - Pink ghost (Pinky)
-  - Cyan ghost (Inky)
-  - Orange ghost (Clyde)
-- **Collision System**: 
-  - Pac-Man loses 100 points per ghost collision
-  - Pac-Man resets to center after collision
-  - Score displayed on screen
+## Architecture Overview
 
-## Implementation Notes
+### Design Patterns Used
 
-### GameMap Class
-- Implements classic Pac-Man arcade maze layout with 19x21 grid
-- Creates outer boundary, ghost spawn box, corridors, connectors, and side tunnels
-- Supports symmetrical maze patterns
-- Provides walkability checking for collision detection
-- Tile types: EMPTY (0), WALL (1), DOT (2)
+| Pattern | Purpose | Implementation |
+|---------|---------|----------------|
+| **State** | Ghost behavior modes | `GhostState` + 5 concrete states |
+| **Strategy** | Ghost targeting AI | `IGhostStrategy` + 4 concrete strategies |
+| **Factory** | Ghost creation | `AbstractGhostFactory` + 4 factories |
+| **Observer** | Event notifications | `Observer`/`Sujet` interfaces |
 
-### PacMan Class
-- Tracks position and direction (UP, DOWN, LEFT, RIGHT)
-- Smooth movement with direction queuing
-- **Mouth Animation**: Uses time-based oscillation for smooth opening/closing
-- Animated arc rendering using `fillArc()` with direction-based rotation
-- Collision detection with game map walls
-- Reset functionality for ghost collisions
+---
 
-### Ghost Class
-- Random movement with wall collision detection
-- Direction change when blocked by walls
-- 4 unique colored ghosts (red, pink, cyan, orange)
-- Moves at 50% speed of Pac-Man for balanced gameplay
-- Advanced rendering with:
-  - Rectangular body base
-  - Semi-circle head
-  - Wavy bottom pattern (3-wave design)
-  - White eyes with black pupils
-  - Outlined edges
-- Collision detection with Pac-Man
+## Project Structure
 
-### GamePanel Class
-- Implements game loop with 100ms update interval
-- Renders all game entities with Graphics2D
-- Uses `BasicStroke` for thick wall rendering
-- Handles keyboard input for Pac-Man control
-- Updates ghost positions and collision detection each frame
-- Displays score and game information
+```
+src/main/java/com/pacman/
+│
+├── core/                    # Core game logic
+│   ├── Game.java           # Main controller, manages entities
+│   ├── Observer.java       # Observer interface (receives events)
+│   ├── Sujet.java          # Subject interface (sends events)  
+│   └── UIPanel.java        # Score display panel
+│
+├── entity/                  # Game entities
+│   ├── Entity.java         # Abstract base class
+│   ├── StaticEntity.java   # Non-moving entities (8px)
+│   ├── MovingEntity.java   # Moving entities (32px, animated)
+│   ├── Wall.java           # Maze boundaries
+│   ├── GhostHouse.java     # Ghost spawn door
+│   ├── PacGum.java         # Regular pellet (+10 pts)
+│   ├── SuperPacGum.java    # Power pellet (+100 pts)
+│   └── PacMan.java         # Player character
+│
+├── ghost/                   # Ghost-related classes
+│   ├── Ghost.java          # Abstract ghost with states
+│   ├── Blinky.java         # Red ghost (Shadow)
+│   ├── Pinky.java          # Pink ghost (Speedy)
+│   ├── Inky.java           # Cyan ghost (Bashful)
+│   ├── Clyde.java          # Orange ghost (Pokey)
+│   │
+│   ├── state/              # State Pattern: Ghost behaviors
+│   │   ├── GhostState.java     # Abstract state with pathfinding
+│   │   ├── ChaseMode.java      # Pursuing PacMan
+│   │   ├── ScatterMode.java    # Targeting corners
+│   │   ├── FrightenedMode.java # Vulnerable (random movement)
+│   │   ├── EatenMode.java      # Returning to house (eyes only)
+│   │   └── HouseMode.java      # Inside ghost house
+│   │
+│   ├── strategy/           # Strategy Pattern: Targeting AI
+│   │   ├── IGhostStrategy.java # Strategy interface
+│   │   ├── BlinkyStrategy.java # Targets PacMan directly
+│   │   ├── PinkyStrategy.java  # Targets 4 tiles ahead
+│   │   ├── InkyStrategy.java   # Uses Blinky position to flank
+│   │   └── ClydeStrategy.java  # Shy - retreats when close
+│   │
+│   └── factory/            # Factory Pattern: Ghost creation
+│       ├── AbstractGhostFactory.java
+│       ├── BlinkyFactory.java
+│       ├── PinkyFactory.java
+│       ├── InkyFactory.java
+│       └── ClydeFactory.java
+│
+├── util/                    # Utility classes
+│   ├── CsvReader.java      # Level loading
+│   ├── KeyHandler.java     # Keyboard input
+│   ├── CollisionDetector.java    # Entity collisions
+│   ├── WallCollisionDetector.java # Wall collisions
+│   └── Utils.java          # Math helpers
+│
+└── ui/                      # User interface
+    ├── GameFrame.java      # Main window
+    └── GamePanel.java      # Game rendering (60 FPS)
+```
 
-### GameFrame Class
-- Main application window container
-- Runs application on EDT (Event Dispatch Thread) for thread safety
-- Sets window size based on maze dimensions
+---
 
-## Graphics Rendering
+## Entity Hierarchy
 
-- **Graphics2D**: All graphics rendered using advanced Java 2D API
-- **Antialiasing**: Smooth rendering of all shapes and lines
-- **Stroke Control**: `BasicStroke(3)` for thick, rounded walls
-- **Color Accuracy**: RGB colors match classic Pac-Man arcade style
-- **Arc Rendering**: Used for Pac-Man mouth and ghost shapes
+```
+Entity (abstract)
+├── StaticEntity (8x8 pixels, fixed position)
+│   ├── Wall         - Blocks movement
+│   ├── GhostHouse   - Ghost spawn door (ghosts pass through)
+│   ├── PacGum       - Regular pellet (+10 points)
+│   └── SuperPacGum  - Power pellet (+100 points, frightens ghosts)
+│
+└── MovingEntity (32x32 pixels, animated sprites)
+    ├── PacMan       - Player character
+    └── Ghost        - Enemy characters
+        ├── Blinky (Red)   - Direct pursuit
+        ├── Pinky (Pink)   - Ambush (targets ahead)
+        ├── Inky (Cyan)    - Flanking (uses Blinky's position)
+        └── Clyde (Orange) - Shy (retreats when close)
+```
 
-## Future Enhancements
+---
 
-- Score system with pellet collection
-- Levels and difficulty progression
-- Ghost AI with pathfinding
-- Power-ups and special items
-- Sound effects
-- Multiple levels with increasing difficulty
-- High score tracking
+## Ghost State Machine
 
-## Game Loop Architecture
+```
+                    ┌─────────────┐
+                    │  HouseMode  │ ◄── Start
+                    └──────┬──────┘
+                           │ exit house
+                           ▼
+           ┌────────────────────────────────┐
+           │                                │
+     ┌─────┴──────┐     timer      ┌───────┴───────┐
+     │ ChaseMode  │◄──────────────►│ ScatterMode   │
+     └─────┬──────┘  (20s / 7s)    └───────┬───────┘
+           │                                │
+           └────────────────────────────────┘
+                           │
+                           │ SuperPacGum eaten
+                           ▼
+                ┌────────────────────┐
+                │  FrightenedMode    │ (7 seconds, random movement)
+                └─────────┬──────────┘
+                          │ eaten by PacMan
+                          ▼
+                  ┌──────────────┐
+                  │  EatenMode   │ (eyes only, returns to house)
+                  └──────┬───────┘
+                         │ enters house
+                         ▼
+                    HouseMode
+```
 
-- Single Timer running at 100ms intervals
-- Updates Pac-Man position and direction each cycle
-- Updates all 4 ghost positions each cycle
-- Collision detection runs after all updates
-- Single `repaint()` call per cycle for smooth rendering
+### State Descriptions
+
+| State | Sprite | Behavior | Duration |
+|-------|--------|----------|----------|
+| **HouseMode** | Normal | Exit ghost house | Until exit |
+| **ChaseMode** | Normal | Pursue PacMan (strategy-based) | 20 seconds |
+| **ScatterMode** | Normal | Target corner (strategy-based) | 7 seconds |
+| **FrightenedMode** | Blue/White | Random movement, can be eaten | 7 seconds |
+| **EatenMode** | Eyes only | Return to ghost house | Until house |
+
+---
+
+## Ghost Targeting Strategies
+
+Each ghost has unique targeting behavior:
+
+### Blinky (Red) - "Shadow"
+- **Chase**: Targets PacMan's current position
+- **Scatter**: Top-right corner
+
+### Pinky (Pink) - "Speedy"
+- **Chase**: Targets 4 tiles ahead of PacMan
+- **Scatter**: Top-left corner
+
+### Inky (Cyan) - "Bashful"
+- **Chase**: Complex - uses vector from Blinky to 2 tiles ahead of PacMan, then doubles it
+- **Scatter**: Bottom-right corner
+
+### Clyde (Orange) - "Pokey"
+- **Chase**: If >8 tiles from PacMan, targets PacMan; otherwise, retreats to scatter target
+- **Scatter**: Bottom-left corner
+
+```
+   Pinky ┌─────────────────────┐ Blinky
+   (0,0) │                     │ (448,0)
+         │                     │
+         │                     │
+   Clyde └─────────────────────┘ Inky
+   (0,496)                       (448,496)
+```
+
+---
+
+## Observer Pattern Flow
+
+```
+PacMan (Subject) ──notifies──► Observer(s)
+                               ├── Game
+                               │   • Destroys eaten pellets
+                               │   • Triggers ghost Frightened mode
+                               │   • Handles game over
+                               │
+                               └── UIPanel
+                                   • Updates score display
+                                   • +10 for PacGum
+                                   • +100 for SuperPacGum
+                                   • +500 for eating ghost
+```
+
+---
+
+## Level Format (CSV)
+
+The game level is loaded from `level.csv` using semicolon separators:
+
+| Symbol | Entity | Description |
+|--------|--------|-------------|
+| `x` | Wall | Blocks movement |
+| `.` | PacGum | Regular pellet (+10 points) |
+| `o` | SuperPacGum | Power pellet (+100 points) |
+| `-` | GhostHouse | Door (ghosts can pass) |
+| `P` | PacMan | Player spawn position |
+| `b` | Blinky | Red ghost spawn |
+| `p` | Pinky | Pink ghost spawn |
+| `i` | Inky | Cyan ghost spawn |
+| `c` | Clyde | Orange ghost spawn |
+
+Cell size: 8 pixels. Entity size: 32 pixels (4x4 cells).
+
+---
+
+## Required Assets
+
+Place these PNG files in the project root:
+
+| File | Description |
+|------|-------------|
+| `background.png` | Maze background (448x496) |
+| `pacman.png` | PacMan sprite sheet |
+| `blinky.png` | Red ghost sprite sheet |
+| `pinky.png` | Pink ghost sprite sheet |
+| `inky.png` | Cyan ghost sprite sheet |
+| `clyde.png` | Orange ghost sprite sheet |
+| `ghost_frightened.png` | Blue frightened ghost |
+| `ghost_frightened_2.png` | White frightened ghost (flashing) |
+| `ghost_eaten.png` | Eyes-only sprite |
+| `level.csv` | Level data |
+
+---
+
+## Game Specifications
+
+| Property | Value |
+|----------|-------|
+| Window Size | 704 x 496 pixels |
+| Gameplay Area | 448 x 496 pixels |
+| UI Panel | 256 x 496 pixels |
+| Frame Rate | 60 FPS |
+| Cell Size | 8 pixels |
+| Entity Size | 32 pixels |
+| PacMan Speed | 2 pixels/frame |
+| Ghost Speed | 2 pixels/frame |
+
+---
+
+## Score System
+
+| Action | Points |
+|--------|--------|
+| Eat PacGum | +10 |
+| Eat SuperPacGum | +100 |
+| Eat Frightened Ghost | +500 |
+
+---
+
+## Class Responsibilities
+
+### Core Classes
+
+| Class | Responsibility |
+|-------|----------------|
+| `Game` | Entity management, game logic, Observer callbacks |
+| `GamePanel` | 60 FPS game loop, rendering, input handling |
+| `GameFrame` | Main window container |
+| `UIPanel` | Score display, Observer for score updates |
+
+### Entity Classes
+
+| Class | Responsibility |
+|-------|----------------|
+| `Entity` | Base class with position, size, hitbox |
+| `StaticEntity` | Fixed-position entities (8px) |
+| `MovingEntity` | Animated entities with velocity (32px) |
+| `PacMan` | Player input, collision detection, Subject |
+| `Ghost` | State machine, strategy-based AI |
+
+### Pattern Classes
+
+| Class | Pattern | Responsibility |
+|-------|---------|----------------|
+| `GhostState` | State | Ghost behavior base class |
+| `IGhostStrategy` | Strategy | Ghost targeting interface |
+| `AbstractGhostFactory` | Factory | Ghost creation interface |
+| `Observer/Sujet` | Observer | Event notification |
+
+---
+
+## Building & Running
+
+### Prerequisites
+- Java JDK 8+
+- PNG assets in project root
+- `level.csv` in project root
+
+### Compile
+```bash
+# Generate file list (PowerShell)
+Get-ChildItem -Path src\main\java\com\pacman -Recurse -Filter "*.java" | ForEach-Object { $_.FullName } | Out-File -FilePath .javacfiles.txt -Encoding ASCII
+
+# Compile
+javac -d build/classes -sourcepath src/main/java "@.javacfiles.txt"
+```
+
+### Run
+```bash
+java -cp build/classes com.pacman.ui.GameFrame
+```
+
+---
+
+## License
+
+Educational project for learning Java game development and design patterns.
 
