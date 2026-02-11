@@ -24,6 +24,11 @@ public class Ghost {
     private int updateCounter = 0; // Counter to make ghosts move slower than Pac-Man
     private static final int SPEED_RATIO = 2; // Ghosts move every 2 game updates (slower)
     
+    // Freeze state tracking
+    private boolean isFrozen = false;
+    private long freezeEndTime = 0;
+    private static final long FREEZE_DURATION = 8000; // 8 seconds in milliseconds
+    
     // Direction constants (same as PacMan)
     public static final int UP = 0;
     public static final int DOWN = 1;
@@ -56,13 +61,25 @@ public class Ghost {
     /**
      * Updates ghost position using simple random movement.
      * Ghosts move slower than Pac-Man (every SPEED_RATIO calls).
+     * If frozen (power pellet effect), ghost stays in place until freeze ends.
      * 
      * Logic:
-     * 1. Try to move in the current direction
-     * 2. If blocked by a wall, pick a new random direction
-     * 3. Move in the new direction if possible
+     * 1. Check if freeze duration has expired and unfreeze if needed
+     * 2. If not frozen, try to move in the current direction
+     * 3. If blocked by a wall, pick a new random direction
+     * 4. Move in the new direction if possible
      */
     public void update() {
+        // Check if freeze duration has expired
+        if (isFrozen && System.currentTimeMillis() >= freezeEndTime) {
+            isFrozen = false;
+        }
+        
+        // If frozen, don't move
+        if (isFrozen) {
+            return;
+        }
+        
         updateCounter++;
         if (updateCounter < SPEED_RATIO) {
             return; // Skip this update to make ghost slower
@@ -163,6 +180,30 @@ public class Ghost {
      */
     public boolean collidesWith(int targetRow, int targetCol) {
         return this.row == targetRow && this.col == targetCol;
+    }
+    
+    /**
+     * Freezes the ghost for a fixed duration.
+     * Used when Pac-Man eats a power pellet.
+     */
+    public void freeze() {
+        this.isFrozen = true;
+        this.freezeEndTime = System.currentTimeMillis() + FREEZE_DURATION;
+    }
+    
+    /**
+     * Checks if the ghost is currently frozen.
+     * @return true if ghost is frozen
+     */
+    public boolean isFrozen() {
+        return isFrozen;
+    }
+    
+    /**
+     * Unfreezes the ghost immediately.
+     */
+    public void unfreeze() {
+        this.isFrozen = false;
     }
     
     // Getter methods

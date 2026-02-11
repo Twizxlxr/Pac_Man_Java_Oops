@@ -27,6 +27,8 @@ public class GamePanel extends JPanel implements KeyListener {
     // Score tracking
     private int score = 0;
     private static final int GHOST_COLLISION_PENALTY = 100; // Points lost on collision
+    private static final int PELLET_POINTS = 10; // Points for eating a regular pellet
+    private static final int POWER_PELLET_POINTS = 50; // Points for eating a power pellet
     
     public GamePanel() {
         // Initialize game objects
@@ -54,6 +56,7 @@ public class GamePanel extends JPanel implements KeyListener {
                 ghost.update();
             }
             
+            checkPelletCollisions();
             checkCollisions();
             repaint();
         });
@@ -248,6 +251,7 @@ public class GamePanel extends JPanel implements KeyListener {
      * - Colored body (square base)
      * - Semicircle head on top
      * - White eyes with black pupils
+     * - Special effect when frozen
      * 
      * @param g the graphics context
      * @param ghost the ghost to draw
@@ -280,7 +284,12 @@ public class GamePanel extends JPanel implements KeyListener {
                 ghostBodyColor = Color.WHITE;
         }
         
-        g.setColor(ghostBodyColor);
+        // If frozen, make ghost semi-transparent blue
+        if (ghost.isFrozen()) {
+            g.setColor(new Color(100, 100, 255, 128)); // Blue with transparency
+        } else {
+            g.setColor(ghostBodyColor);
+        }
         
         // Draw ghost head (semicircle)
         g.fillArc(x, y, size, headRadius * 2, 0, 180);
@@ -346,6 +355,39 @@ public class GamePanel extends JPanel implements KeyListener {
                    pupilRadius * 2, pupilRadius * 2);
         g.fillOval(rightEyeX + eyeRadius - pupilRadius, rightEyeY + eyeRadius - pupilRadius, 
                    pupilRadius * 2, pupilRadius * 2);
+    }
+    
+    /**
+     * Checks if Pac-Man has eaten any pellets and removes them from the map.
+     * Awards points for eating pellets and freezes ghosts for power pellets.
+     */
+    private void checkPelletCollisions() {
+        int pacManRow = pacMan.getRow();
+        int pacManCol = pacMan.getCol();
+        int currentTile = gameMap.getTile(pacManRow, pacManCol);
+        
+        // Check if Pac-Man is on a pellet
+        if (currentTile == GameMap.DOT) {
+            // Determine if it's a power pellet or regular pellet
+            boolean isPowerPellet = isPowerPellet(pacManRow, pacManCol);
+            
+            // Remove the pellet from the map
+            gameMap.setTile(pacManRow, pacManCol, GameMap.EMPTY);
+            
+            if (isPowerPellet) {
+                // Freeze all ghosts and award more points
+                score += POWER_PELLET_POINTS;
+                for (Ghost ghost : ghosts) {
+                    ghost.freeze();
+                }
+                System.out.println("Power Pellet eaten! All ghosts frozen for 8 seconds!");
+                System.out.println("Score increased by " + POWER_PELLET_POINTS + ". New score: " + score);
+            } else {
+                // Regular pellet
+                score += PELLET_POINTS;
+                System.out.println("Pellet eaten! Score increased by " + PELLET_POINTS + ". New score: " + score);
+            }
+        }
     }
     
     /**
