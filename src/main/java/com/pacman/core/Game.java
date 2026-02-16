@@ -86,6 +86,11 @@ public class Game implements Observer {
     /** Game won flag */
     private static boolean gameWon = false;
 
+    /** Ghost release timing */
+    private long lastGhostReleaseTime = 0;
+    private int ghostReleaseIndex = 0;
+    private boolean ghostsReleasedAtStart = false;
+
     public Game(UIPanel uiPanel) {
         this.uiPanel = uiPanel;
         ghostSpawnX = new int[4];
@@ -183,6 +188,36 @@ public class Game implements Observer {
     }
 
     public void update() {
+        // Release ghosts sequentially after first input
+        if (!ghostsReleasedAtStart && getFirstInput()) {
+            long currentTime = System.currentTimeMillis();
+            
+            // Initialize release timer on first call
+            if (ghostReleaseIndex == 0 && lastGhostReleaseTime == 0) {
+                lastGhostReleaseTime = currentTime;
+                // Release first ghost immediately
+                if (ghostReleaseIndex < ghosts.size()) {
+                    Ghost ghost = ghosts.get(ghostReleaseIndex);
+                    ghost.getState().outsideHouse();
+                    ghostReleaseIndex++;
+                    lastGhostReleaseTime = currentTime;
+                }
+            }
+            
+            // Release ghost if time interval has passed
+            if (ghostReleaseIndex < ghosts.size() && (currentTime - lastGhostReleaseTime) >= 2000) {
+                Ghost ghost = ghosts.get(ghostReleaseIndex);
+                ghost.getState().outsideHouse();
+                ghostReleaseIndex++;
+                lastGhostReleaseTime = currentTime;
+            }
+            
+            // Mark release sequence complete
+            if (ghostReleaseIndex >= ghosts.size()) {
+                ghostsReleasedAtStart = true;
+            }
+        }
+        
         for (Entity o : objects) {
             if (!o.isDestroyed()) o.update();
         }
@@ -238,12 +273,21 @@ public class Game implements Observer {
         }
     }
     
-    /** Checks if player has reached the winning score */
+    /** Checks if player has won: all pellets eaten */
     private void checkWinCondition() {
-        if (uiPanel != null && uiPanel.getScore() >= 1000) {
+        boolean allPelletsEaten = true;
+        // Check for remaining PacGum or SuperPacGum
+        for (Entity e : objects) {
+            if (!e.isDestroyed() && (e instanceof PacGum || e instanceof SuperPacGum)) {
+                allPelletsEaten = false;
+                break;
+            }
+        }
+        if (allPelletsEaten) {
             gameWon = true;
-            uiPanel.repaint(); // Refresh to show restart buttons
-            System.out.println("You win!\nScore: " + uiPanel.getScore());
+            if (uiPanel != null) uiPanel.repaint();
+            System.out.println("You win! All pellets cleared.");
+            advanceToNextLevel();
         }
     }
 
@@ -294,6 +338,10 @@ public class Game implements Observer {
             ghost.switchHouseMode();
         }
         
+        // Reset ghost release timing
+        lastGhostReleaseTime = 0;
+        ghostReleaseIndex = 0;
+        ghostsReleasedAtStart = false;
         // Reset first input flag so ghosts wait again
         firstInput = false;
     }
@@ -326,5 +374,48 @@ public class Game implements Observer {
         gameWon = false;
         firstInput = false;
         walls.clear();
+    }
+
+    /** Advances to next level: increases speeds and resets game state */
+    private void advanceToNextLevel() {
+        // Increase speed for PacMan
+        if (pacman != null) {
+            pacman.setSpd(pacman.getSpd() + 1);
+        }
+        // Increase speed for all ghosts
+        for (Ghost gh : ghosts) {
+            gh.setSpd(gh.getSpd() + 1);
+        }
+        // Reset pellets and ghosts
+        resetLevelEntities();
+        gameWon = false;
+        if (uiPanel != null) uiPanel.reset();
+        System.out.println("Next level started! Speeds increased.");
+    }
+
+    /** Resets pellets and ghosts for new level */
+    private void resetLevelEntities() {
+        // Restore all pellets
+        for (Entity e : objects) {
+            if (e instanceof PacGum || e instanceof SuperPacGum) {
+                e.setDestroyed(false);
+            }
+        }
+        // Restore all ghosts
+        for (int i = 0; i < ghosts.size() && i < 4; i++) {
+            Ghost ghost = ghosts.get(i);
+            ghost.setxPos(ghostSpawnX[i]);
+            ghost.setyPos(ghostSpawnY[i]);
+            ghost.setxSpd(0);
+            ghost.setySpd(0);
+            ghost.switchHouseMode();
+            ghost.setDestroyed(false);
+        }
+        // Reset ghost release timing
+        lastGhostReleaseTime = 0;
+        ghostReleaseIndex = 0;
+        ghostsReleasedAtStart = false;
+        // Reset first input flag so ghosts wait again
+        firstInput = false;
     }
 }

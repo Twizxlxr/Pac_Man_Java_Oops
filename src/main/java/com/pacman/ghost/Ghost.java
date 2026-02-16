@@ -144,25 +144,25 @@ public abstract class Ghost extends MovingEntity {
 
     /**
      * Updates ghost state, timers, and position each frame.
-     * 
-     * <p>Timer logic:</p>
-     * <ul>
-     *   <li>Frightened mode: 7 seconds (420 frames at 60 FPS)</li>
-     *   <li>Chase mode: 20 seconds before switching to Scatter</li>
-     *   <li>Scatter mode: 7 seconds before switching to Chase</li>
-     * </ul>
+     * Handles speed reduction for FrightenedMode using a temporary speed variable.
      */
     @Override
     public void update() {
         // Don't move until player makes first input
         if (!Game.getFirstInput()) return;
 
-        // Frightened timer - 7 seconds of vulnerability
+        // Save original speed
+        int originalSpd = 2;
         if (state == frightenedMode) {
+            // Reduce speed only in FrightenedMode
+            if (spd != 1) spd = 1;
             frightenedTimer++;
             if (frightenedTimer >= (60 * 7)) { // 7 seconds
                 state.timerFrightenedModeOver();
             }
+        } else {
+            // Restore normal speed if not frightened
+            if (spd != originalSpd) spd = originalSpd;
         }
 
         // Chase/Scatter mode timer - alternate between modes
