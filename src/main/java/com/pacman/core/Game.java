@@ -188,31 +188,23 @@ public class Game implements Observer {
     }
 
     public void update() {
-        // Release ghosts sequentially after first input
+        // Release ghosts sequentially after first input with 3-second delay
         if (!ghostsReleasedAtStart && getFirstInput()) {
             long currentTime = System.currentTimeMillis();
             
-            // Initialize release timer on first call
+            // Initialize release timer on first input
             if (ghostReleaseIndex == 0 && lastGhostReleaseTime == 0) {
                 lastGhostReleaseTime = currentTime;
-                // Release first ghost immediately
-                if (ghostReleaseIndex < ghosts.size()) {
-                    Ghost ghost = ghosts.get(ghostReleaseIndex);
-                    ghost.getState().outsideHouse();
-                    ghostReleaseIndex++;
-                    lastGhostReleaseTime = currentTime;
-                }
             }
-            
-            // Release ghost if time interval has passed
-            if (ghostReleaseIndex < ghosts.size() && (currentTime - lastGhostReleaseTime) >= 2000) {
+            // Release ghosts every 3 seconds (including first ghost)
+            else if (ghostReleaseIndex < ghosts.size() && (currentTime - lastGhostReleaseTime) >= 3000) {
                 Ghost ghost = ghosts.get(ghostReleaseIndex);
                 ghost.getState().outsideHouse();
                 ghostReleaseIndex++;
                 lastGhostReleaseTime = currentTime;
             }
             
-            // Mark release sequence complete
+            // Mark release sequence complete when all ghosts released
             if (ghostReleaseIndex >= ghosts.size()) {
                 ghostsReleasedAtStart = true;
             }
@@ -389,7 +381,7 @@ public class Game implements Observer {
         // Reset pellets and ghosts
         resetLevelEntities();
         gameWon = false;
-        if (uiPanel != null) uiPanel.reset();
+        if (uiPanel != null) uiPanel.resetForNextLevel();
         System.out.println("Next level started! Speeds increased.");
     }
 

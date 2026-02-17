@@ -89,7 +89,7 @@ public abstract class Ghost extends MovingEntity {
      * @param spriteName Sprite sheet filename (e.g., "blinky.png")
      */
     public Ghost(int xPos, int yPos, String spriteName) {
-        super(32, xPos, yPos, 2, spriteName, 2, 0.1f);
+        super(32, xPos, yPos, 1, spriteName, 2, 0.1f);
 
         // Initialize all state objects (State Pattern)
         chaseMode = new ChaseMode(this);

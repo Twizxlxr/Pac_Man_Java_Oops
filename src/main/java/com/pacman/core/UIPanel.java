@@ -162,6 +162,11 @@ public class UIPanel extends JPanel implements Observer {
         scoreLabel.setText("Score: " + score);
         repaint();
     }
+    
+    /** Resets for next level while preserving score and lives */
+    public void resetForNextLevel() {
+        repaint();
+    }
 
     @Override
     public void updatePacGumEaten(PacGum pg) {
