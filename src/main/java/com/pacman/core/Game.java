@@ -86,6 +86,9 @@ public class Game implements Observer {
     /** Game won flag */
     private static boolean gameWon = false;
 
+    /** Grace period in frames after game restart to prevent immediate collisions */
+    private static int graceFrames = 0;
+
     /** Ghost release timing */
     private long lastGhostReleaseTime = 0;
     private int ghostReleaseIndex = 0;
@@ -93,6 +96,7 @@ public class Game implements Observer {
 
     public Game(UIPanel uiPanel) {
         this.uiPanel = uiPanel;
+        graceFrames = 2;  // Set grace period to prevent immediate collisions
         ghostSpawnX = new int[4];
         ghostSpawnY = new int[4];
         int ghostIndex = 0;
@@ -188,6 +192,11 @@ public class Game implements Observer {
     }
 
     public void update() {
+        // Decrement grace period frames
+        if (graceFrames > 0) {
+            graceFrames--;
+        }
+        
         // Release ghosts sequentially after first input with 3-second delay
         if (!ghostsReleasedAtStart && getFirstInput()) {
             long currentTime = System.currentTimeMillis();
@@ -237,6 +246,11 @@ public class Game implements Observer {
     /** Returns Blinky instance (used by Inky's strategy) */
     public static Blinky getBlinky() {
         return blinky;
+    }
+
+    /** Returns true if game is in grace period (no ghost collisions allowed) */
+    public static boolean isInGracePeriod() {
+        return graceFrames > 0;
     }
 
     // ==================== Observer Callbacks ====================
@@ -370,19 +384,23 @@ public class Game implements Observer {
 
     /** Advances to next level: increases speeds and resets game state */
     private void advanceToNextLevel() {
-        // Increase speed for PacMan
+        // Advance level in configuration (increases multipliers and point values)
+        LevelConfig.nextLevel();
+        
+        // Update PacMan speed for new level
         if (pacman != null) {
-            pacman.setSpd(pacman.getSpd() + 1);
+            pacman.updateSpeedForLevel();
         }
-        // Increase speed for all ghosts
+        
+        // Update speed for all ghosts
         for (Ghost gh : ghosts) {
-            gh.setSpd(gh.getSpd() + 1);
+            gh.updateSpeedForLevel();
         }
+        
         // Reset pellets and ghosts
         resetLevelEntities();
         gameWon = false;
         if (uiPanel != null) uiPanel.resetForNextLevel();
-        System.out.println("Next level started! Speeds increased.");
     }
 
     /** Resets pellets and ghosts for new level */

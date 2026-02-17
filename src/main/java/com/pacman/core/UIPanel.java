@@ -87,6 +87,12 @@ public class UIPanel extends JPanel implements Observer {
             }
         }
         
+        // Draw level display
+        g.setColor(Color.CYAN);
+        g.setFont(new Font("Arial", Font.BOLD, 16));
+        String levelText = "Level: " + LevelConfig.getCurrentLevel();
+        g.drawString(levelText, 10, height - 20);
+        
         // Draw restart UI when game is over or won
         if (Game.isGameOver() || Game.isGameWon()) {
             Graphics2D g2 = (Graphics2D) g;
@@ -170,18 +176,18 @@ public class UIPanel extends JPanel implements Observer {
 
     @Override
     public void updatePacGumEaten(PacGum pg) {
-        updateScore(10);
+        updateScore(LevelConfig.getPacGumPoints());
     }
 
     @Override
     public void updateSuperPacGumEaten(SuperPacGum spg) {
-        updateScore(100);
+        updateScore(LevelConfig.getSuperPacGumPoints());
     }
 
     @Override
     public void updateGhostCollision(Ghost gh) {
         if (gh.getState() instanceof FrightenedMode) {
-            updateScore(500);
+            updateScore(LevelConfig.getGhostPoints());
         }
     }
 }

@@ -1,6 +1,7 @@
 package com.pacman.entity;
 
 import com.pacman.core.Game;
+import com.pacman.core.LevelConfig;
 import com.pacman.core.Observer;
 import com.pacman.core.Sujet;
 import com.pacman.ghost.Ghost;
@@ -16,11 +17,15 @@ import java.util.List;
  * Notifies observers when eating pellets or colliding with ghosts.
  */
 public class PacMan extends MovingEntity implements Sujet {
+    
+    /** Base movement speed (pixels per frame) before level multiplier */
+    private static final int BASE_SPEED = 2;
+    
     private CollisionDetector collisionDetector;
     private List<Observer> observerCollection;
 
     public PacMan(int xPos, int yPos) {
-        super(32, xPos, yPos, 2, "pacman.png", 4, 0.3f);
+        super(32, xPos, yPos, (int)(BASE_SPEED * LevelConfig.getPacmanSpeedMultiplier()), "pacman.png", 4, 0.3f);
         observerCollection = new ArrayList<>();
     }
 
@@ -75,9 +80,12 @@ public class PacMan extends MovingEntity implements Sujet {
                 notifyObserverSuperPacGumEaten(spg);
             }
 
-            Ghost gh = (Ghost) collisionDetector.checkCollision(this, Ghost.class);
-            if (gh != null) {
-                notifyObserverGhostCollision(gh);
+            // Only check ghost collisions if not in grace period
+            if (!Game.isInGracePeriod()) {
+                Ghost gh = (Ghost) collisionDetector.checkCollision(this, Ghost.class);
+                if (gh != null) {
+                    notifyObserverGhostCollision(gh);
+                }
             }
         }
 
@@ -88,6 +96,14 @@ public class PacMan extends MovingEntity implements Sujet {
 
     public void setCollisionDetector(CollisionDetector collisionDetector) {
         this.collisionDetector = collisionDetector;
+    }
+
+    /**
+     * Updates PacMan speed when advancing to a new level.
+     * Called by Game when nextLevel() is triggered.
+     */
+    public void updateSpeedForLevel() {
+        spd = (int)(BASE_SPEED * LevelConfig.getPacmanSpeedMultiplier());
     }
 
     @Override

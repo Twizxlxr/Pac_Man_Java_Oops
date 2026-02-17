@@ -1,6 +1,7 @@
 package com.pacman.ui;
 
 import com.pacman.core.Game;
+import com.pacman.core.LevelConfig;
 import com.pacman.core.UIPanel;
 import com.pacman.util.KeyHandler;
 
@@ -62,8 +63,10 @@ public class GamePanel extends JPanel implements Runnable {
     /** Restarts the game by reinitializing everything */
     private void restartGame() {
         Game.resetGameOver();
+        LevelConfig.resetToLevel1();
         uiPanel.reset();
         game = new Game(uiPanel);
+        uiPanel.repaint();
     }
 
     @Override

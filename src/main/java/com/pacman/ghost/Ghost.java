@@ -1,6 +1,7 @@
 package com.pacman.ghost;
 
 import com.pacman.core.Game;
+import com.pacman.core.LevelConfig;
 import com.pacman.entity.MovingEntity;
 import com.pacman.ghost.state.*;
 import com.pacman.ghost.strategy.IGhostStrategy;
@@ -55,6 +56,9 @@ import java.io.IOException;
  */
 public abstract class Ghost extends MovingEntity {
     
+    /** Base movement speed (pixels per frame) before level multiplier */
+    private static final int BASE_SPEED = 1;
+    
     /** Current behavioral state */
     protected GhostState state;
 
@@ -89,7 +93,7 @@ public abstract class Ghost extends MovingEntity {
      * @param spriteName Sprite sheet filename (e.g., "blinky.png")
      */
     public Ghost(int xPos, int yPos, String spriteName) {
-        super(32, xPos, yPos, 1, spriteName, 2, 0.1f);
+        super(32, xPos, yPos, (int)(BASE_SPEED * LevelConfig.getGhostSpeedMultiplier()), spriteName, 2, 0.1f);
 
         // Initialize all state objects (State Pattern)
         chaseMode = new ChaseMode(this);
@@ -139,6 +143,14 @@ public abstract class Ghost extends MovingEntity {
     public IGhostStrategy getStrategy() { return this.strategy; }
     public void setStrategy(IGhostStrategy strategy) { this.strategy = strategy; }
     public GhostState getState() { return state; }
+
+    /**
+     * Updates ghost speed when advancing to a new level.
+     * Called by Game when nextLevel() is triggered.
+     */
+    public void updateSpeedForLevel() {
+        spd = (int)(BASE_SPEED * LevelConfig.getGhostSpeedMultiplier());
+    }
 
     // ==================== Game Loop ====================
 
