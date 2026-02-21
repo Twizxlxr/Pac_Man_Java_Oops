@@ -16,8 +16,13 @@ import java.io.IOException;
  * Main game panel handling rendering and game loop.
  */
 public class GamePanel extends JPanel implements Runnable {
+    // Base (internal) resolution - what the game engine uses
     public static int width = 448;
     public static int height = 496;
+
+    // Display (scaled) resolution - what the window shows
+    private int displayWidth;
+    private int displayHeight;
 
     private Thread thread;
     private boolean running = false;
@@ -33,8 +38,14 @@ public class GamePanel extends JPanel implements Runnable {
     private UIPanel uiPanel;
 
     public GamePanel(UIPanel uiPanel) throws IOException {
+        this(uiPanel, width, height);
+    }
+
+    public GamePanel(UIPanel uiPanel, int displayW, int displayH) throws IOException {
         this.uiPanel = uiPanel;
-        setPreferredSize(new Dimension(width, height));
+        this.displayWidth = displayW;
+        this.displayHeight = displayH;
+        setPreferredSize(new Dimension(displayWidth, displayHeight));
         setFocusable(true);
         requestFocus();
 
@@ -158,8 +169,47 @@ public class GamePanel extends JPanel implements Runnable {
                 String restartText = "Press R to Restart";
                 int restartX = (width - fmRestart.stringWidth(restartText)) / 2;
                 g.drawString(restartText, restartX, height - 30);
+            } else if (Game.isLevelStarting()) {
+                // Level transition card overlay
+                game.render(g); // Render game underneath
+
+                // Semi-transparent dark overlay
+                g.setColor(new Color(0, 0, 0, 200));
+                g.fillRect(0, 0, width, height);
+
+                // Level number
+                g.setColor(Color.YELLOW);
+                g.setFont(new Font("Arial", Font.BOLD, 42));
+                FontMetrics fmLevel = g.getFontMetrics();
+                String lvlText = "Level " + LevelConfig.getCurrentLevel();
+                int lvlX = (width - fmLevel.stringWidth(lvlText)) / 2;
+                g.drawString(lvlText, lvlX, height / 2 - 40);
+
+                // Current score
+                g.setColor(Color.WHITE);
+                g.setFont(new Font("Arial", Font.PLAIN, 22));
+                FontMetrics fmScore = g.getFontMetrics();
+                String scoreText = "Score: " + Game.getLevelStartScore();
+                int scoreX = (width - fmScore.stringWidth(scoreText)) / 2;
+                g.drawString(scoreText, scoreX, height / 2 + 10);
+
+                // Speed info
+                g.setColor(Color.CYAN);
+                g.setFont(new Font("Arial", Font.PLAIN, 16));
+                FontMetrics fmSpd = g.getFontMetrics();
+                String spdText = "Speed: " + String.format("%.0f%%", LevelConfig.getGhostSpeedMultiplier() * 100);
+                int spdX = (width - fmSpd.stringWidth(spdText)) / 2;
+                g.drawString(spdText, spdX, height / 2 + 40);
+
+                // Get ready text
+                g.setColor(Color.GREEN);
+                g.setFont(new Font("Arial", Font.BOLD, 18));
+                FontMetrics fmReady = g.getFontMetrics();
+                String readyText = "Get Ready!";
+                int readyX = (width - fmReady.stringWidth(readyText)) / 2;
+                g.drawString(readyText, readyX, height / 2 + 80);
             } else {
-                // Render all entities
+                // Normal gameplay: render all entities
                 game.render(g);
             }
         }
@@ -168,7 +218,8 @@ public class GamePanel extends JPanel implements Runnable {
     public void draw() {
         Graphics g2 = this.getGraphics();
         if (g2 != null) {
-            g2.drawImage(img, 0, 0, width, height, null);
+            // Scale the base-resolution image to display size
+            g2.drawImage(img, 0, 0, displayWidth, displayHeight, null);
             g2.dispose();
         }
     }

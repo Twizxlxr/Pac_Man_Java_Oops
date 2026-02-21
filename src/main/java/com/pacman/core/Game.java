@@ -109,6 +109,12 @@ public class Game implements Observer {
     private int ghostReleaseIndex = 0;
     private boolean ghostsReleasedAtStart = false;
 
+    /** Level transition state */
+    private static boolean levelStarting = false;
+    private static long levelStartTime = 0;
+    private static final long LEVEL_CARD_DURATION = 2500; // 2.5 seconds
+    private static int levelStartScore = 0;
+
     public Game(UIPanel uiPanel) {
         this.uiPanel = uiPanel;
         graceFrames = 2; // Set grace period to prevent immediate collisions
@@ -211,6 +217,14 @@ public class Game implements Observer {
     }
 
     public void update() {
+        // Pause during level transition card
+        if (levelStarting) {
+            if (System.currentTimeMillis() - levelStartTime > LEVEL_CARD_DURATION) {
+                levelStarting = false;
+            }
+            return; // Freeze game during level card
+        }
+
         // Decrement grace period frames
         if (graceFrames > 0) {
             graceFrames--;
@@ -407,6 +421,16 @@ public class Game implements Observer {
         return gameWon;
     }
 
+    /** Returns true if level transition card is showing */
+    public static boolean isLevelStarting() {
+        return levelStarting;
+    }
+
+    /** Returns the score when level transition started */
+    public static int getLevelStartScore() {
+        return levelStartScore;
+    }
+
     /** Resets the game over flag for restarting */
     public static void resetGameOver() {
         gameOver = false;
@@ -417,6 +441,9 @@ public class Game implements Observer {
 
     /** Advances to next level: increases speeds and resets game state */
     private void advanceToNextLevel() {
+        // Store score for level card display
+        levelStartScore = (uiPanel != null) ? uiPanel.getScore() : 0;
+
         // Advance level in configuration (increases multipliers and point values)
         LevelConfig.nextLevel();
 
@@ -430,14 +457,18 @@ public class Game implements Observer {
             gh.updateSpeedForLevel();
         }
 
-        // Reset pellets and ghosts
+        // Reset pellets, ghosts, and PacMan
         resetLevelEntities();
         gameWon = false;
         if (uiPanel != null)
             uiPanel.resetForNextLevel();
+
+        // Start level transition card
+        levelStarting = true;
+        levelStartTime = System.currentTimeMillis();
     }
 
-    /** Resets pellets and ghosts for new level */
+    /** Resets pellets, ghosts, and PacMan for new level */
     private void resetLevelEntities() {
         // Restore all pellets
         for (Entity e : objects) {
@@ -446,6 +477,14 @@ public class Game implements Observer {
                 e.setxPos(e.getSpawnX());
                 e.setyPos(e.getSpawnY());
             }
+        }
+
+        // Reset PacMan to spawn position
+        if (pacman != null) {
+            pacman.setxPos(pacmanSpawnX);
+            pacman.setyPos(pacmanSpawnY);
+            pacman.setxSpd(0);
+            pacman.setySpd(0);
         }
         // Restore all ghosts
         for (int i = 0; i < ghosts.size() && i < 4; i++) {
