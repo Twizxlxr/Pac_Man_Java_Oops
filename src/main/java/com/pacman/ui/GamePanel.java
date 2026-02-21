@@ -249,8 +249,8 @@ public class GamePanel extends JPanel implements Runnable {
             while ((now - lastUpdateTime) > TBU && (updateCount < MUBR)) {
                 if (!Game.isGameOver() && !Game.isGameWon()) {
                     input(key);
-                    update();
                 }
+                update(); // Always call - handles R key restart check
                 lastUpdateTime += TBU;
                 updateCount++;
             }
