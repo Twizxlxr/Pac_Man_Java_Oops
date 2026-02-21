@@ -18,7 +18,7 @@ import java.io.IOException;
 public class GamePanel extends JPanel implements Runnable {
     public static int width = 448;
     public static int height = 496;
-    
+
     private Thread thread;
     private boolean running = false;
 
@@ -37,29 +37,29 @@ public class GamePanel extends JPanel implements Runnable {
         setPreferredSize(new Dimension(width, height));
         setFocusable(true);
         requestFocus();
-        
+
         try {
             backgroundImage = ImageIO.read(new File("background.png"));
         } catch (IOException e) {
             System.err.println("Could not load background.png");
         }
-        
+
         try {
             gameOverImage = ImageIO.read(new File("GameOver.png"));
         } catch (IOException e) {
             System.err.println("Could not load GameOver.png");
         }
-        
+
         try {
             youWinImage = ImageIO.read(new File("youwin.png"));
         } catch (IOException e) {
             System.err.println("Could not load youwin.png");
         }
-        
+
         // Set restart callback on UIPanel
         uiPanel.setRestartCallback(() -> restartGame());
     }
-    
+
     /** Restarts the game by reinitializing everything */
     private void restartGame() {
         Game.resetGameOver();
@@ -89,6 +89,12 @@ public class GamePanel extends JPanel implements Runnable {
     }
 
     public void update() {
+        // Check for restart key during game over or win
+        if ((Game.isGameOver() || Game.isGameWon()) && key != null && key.k_restart.isPressed) {
+            restartGame();
+            key.k_restart.toggle(false);
+            return;
+        }
         game.update();
     }
 
@@ -105,18 +111,18 @@ public class GamePanel extends JPanel implements Runnable {
                 g.setColor(Color.BLACK);
                 g.fillRect(0, 0, width, height);
             }
-            
+
             // Check for game over or win
             if (Game.isGameOver() || Game.isGameWon()) {
                 // Semi-transparent overlay
                 g.setColor(new Color(0, 0, 0, 150));
                 g.fillRect(0, 0, width, height);
-                
+
                 // Select which image to show
                 Image displayImage = Game.isGameWon() ? youWinImage : gameOverImage;
                 String fallbackText = Game.isGameWon() ? "YOU WIN!" : "GAME OVER";
                 Color fallbackColor = Game.isGameWon() ? Color.GREEN : Color.RED;
-                
+
                 // Draw image scaled to fit
                 if (displayImage != null) {
                     // Scale image to fit within the panel (with padding)
@@ -124,13 +130,13 @@ public class GamePanel extends JPanel implements Runnable {
                     int maxHeight = height - 100;
                     int imgWidth = displayImage.getWidth(null);
                     int imgHeight = displayImage.getHeight(null);
-                    
+
                     if (imgWidth > 0 && imgHeight > 0) {
                         // Calculate scale to fit
                         double scale = Math.min((double) maxWidth / imgWidth, (double) maxHeight / imgHeight);
                         int scaledWidth = (int) (imgWidth * scale);
                         int scaledHeight = (int) (imgHeight * scale);
-                        
+
                         int x = (width - scaledWidth) / 2;
                         int y = (height - scaledHeight) / 2;
                         g.drawImage(displayImage, x, y, scaledWidth, scaledHeight, null);
@@ -144,6 +150,14 @@ public class GamePanel extends JPanel implements Runnable {
                     int textY = (height + fm.getAscent()) / 2;
                     g.drawString(fallbackText, textX, textY);
                 }
+
+                // Draw restart prompt
+                g.setColor(Color.YELLOW);
+                g.setFont(new Font("Arial", Font.BOLD, 20));
+                FontMetrics fmRestart = g.getFontMetrics();
+                String restartText = "Press R to Restart";
+                int restartX = (width - fmRestart.stringWidth(restartText)) / 2;
+                g.drawString(restartText, restartX, height - 30);
             } else {
                 // Render all entities
                 game.render(g);
@@ -180,7 +194,7 @@ public class GamePanel extends JPanel implements Runnable {
         while (running) {
             double now = System.nanoTime();
             int updateCount = 0;
-            
+
             while ((now - lastUpdateTime) > TBU && (updateCount < MUBR)) {
                 if (!Game.isGameOver() && !Game.isGameWon()) {
                     input(key);
@@ -217,4 +231,3 @@ public class GamePanel extends JPanel implements Runnable {
         }
     }
 }
-

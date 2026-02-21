@@ -5,7 +5,10 @@ import java.awt.*;
 /**
  * Abstract base class for all game entities.
  * 
- * <p><b>Entity Hierarchy:</b></p>
+ * <p>
+ * <b>Entity Hierarchy:</b>
+ * </p>
+ * 
  * <pre>
  * Entity (abstract)
  * ├── StaticEntity (non-moving)
@@ -23,28 +26,35 @@ import java.awt.*;
  *         └── Clyde (Orange) - Distance-based targeting
  * </pre>
  * 
- * <p><b>Coordinate System:</b> Position (xPos, yPos) is top-left corner.
- * Size is 8px for static entities, 32px for moving entities.</p>
+ * <p>
+ * <b>Coordinate System:</b> Position (xPos, yPos) is top-left corner.
+ * Size is 8px for static entities, 32px for moving entities.
+ * </p>
  * 
  * @see StaticEntity For non-moving entities
  * @see MovingEntity For entities that can move
  */
 public abstract class Entity {
-    
+
     /** Entity size in pixels (8px for static, 32px for moving) */
     protected int size;
-    
+
     /** X position (top-left corner) */
     protected int xPos;
-    
+
     /** Y position (top-left corner) */
     protected int yPos;
-    
+
+    /** Original spawn positions for level reset */
+    protected int spawnX;
+    protected int spawnY;
+
     /** Whether this entity has been destroyed/collected */
     protected boolean destroyed = false;
 
     /**
      * Creates a new entity at the specified position.
+     * 
      * @param size Entity size in pixels
      * @param xPos X position (top-left corner)
      * @param yPos Y position (top-left corner)
@@ -53,18 +63,23 @@ public abstract class Entity {
         this.size = size;
         this.xPos = xPos;
         this.yPos = yPos;
+        this.spawnX = xPos;
+        this.spawnY = yPos;
     }
 
     /**
      * Updates entity state each frame. Override in subclasses.
      */
-    public void update() {}
-    
+    public void update() {
+    }
+
     /**
      * Renders the entity. Override in subclasses.
+     * 
      * @param g Graphics context
      */
-    public void render(Graphics2D g) {}
+    public void render(Graphics2D g) {
+    }
 
     /**
      * Marks this entity as destroyed and moves it off-screen.
@@ -76,16 +91,46 @@ public abstract class Entity {
     }
 
     // ==================== Getters ====================
-    
-    public boolean isDestroyed() { return destroyed; }
-    public int getSize() { return size; }
-    public int getxPos() { return xPos; }
-    public int getyPos() { return yPos; }
-    public void setxPos(int xPos) { this.xPos = xPos; }
-    public void setyPos(int yPos) { this.yPos = yPos; }
-    
+
+    public boolean isDestroyed() {
+        return destroyed;
+    }
+
+    public void setDestroyed(boolean destroyed) {
+        this.destroyed = destroyed;
+    }
+
+    public int getSize() {
+        return size;
+    }
+
+    public int getxPos() {
+        return xPos;
+    }
+
+    public int getyPos() {
+        return yPos;
+    }
+
+    public int getSpawnX() {
+        return spawnX;
+    }
+
+    public int getSpawnY() {
+        return spawnY;
+    }
+
+    public void setxPos(int xPos) {
+        this.xPos = xPos;
+    }
+
+    public void setyPos(int yPos) {
+        this.yPos = yPos;
+    }
+
     /**
      * Returns the collision hitbox for this entity.
+     * 
      * @return Rectangle representing the hitbox
      */
     public abstract Rectangle getHitbox();

@@ -32,6 +32,7 @@ public class KeyHandler implements KeyListener {
     public Key k_down = new Key();
     public Key k_left = new Key();
     public Key k_right = new Key();
+    public Key k_restart = new Key();
 
     public KeyHandler(GamePanel panel) {
         panel.addKeyListener(this);
@@ -50,10 +51,14 @@ public class KeyHandler implements KeyListener {
         if (e.getKeyCode() == KeyEvent.VK_DOWN || e.getKeyCode() == KeyEvent.VK_S) {
             k_down.toggle(pressed);
         }
+        if (e.getKeyCode() == KeyEvent.VK_R) {
+            k_restart.toggle(pressed);
+        }
     }
 
     @Override
-    public void keyTyped(KeyEvent e) {}
+    public void keyTyped(KeyEvent e) {
+    }
 
     @Override
     public void keyPressed(KeyEvent e) {
